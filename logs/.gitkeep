@@ -1,0 +1,14 @@
+# Application Logs
+
+This directory contains application logs from the multi-agent system.
+
+## Structure
+
+- System logs
+- Agent logs
+- Error logs
+- Performance logs
+
+## Usage
+
+All application logs will be automatically saved to this directory.

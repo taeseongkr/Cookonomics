@@ -1,0 +1,14 @@
+# Data Inputs
+
+This directory contains input data files for the multi-agent system.
+
+## Structure
+
+- Raw data files
+- Configuration files
+- Input datasets
+- External data sources
+
+## Usage
+
+Place your input data files here. The system will automatically process files from this directory.
