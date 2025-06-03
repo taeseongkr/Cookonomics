@@ -1,16 +1,32 @@
-# cookonomics
+# Cookonomics
 
-A new Flutter project.
+Cookonomics is a Flutter application designed to help you manage and optimize your cooking and grocery expenses.
+
+## Features
+
+- Track your recipes and ingredients
+- Calculate meal costs and nutritional information
+- Manage your shopping list
+- Analyze your spending on groceries
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+To run this project locally:
 
-A few resources to get you started if this is your first Flutter project:
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/cookonomics.git
+    cd cookonomics
+    ```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+2. **Install dependencies:**
+    ```bash
+    flutter pub get
+    ```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+3. **Run the app:**
+    ```bash
+    flutter run -d chrome
+    ```
+
+
