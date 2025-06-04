@@ -42,7 +42,7 @@ dependencies:
   
   # Form and input packages
   dropdown_button2: ^2.3.9
-  flutter_form_builder: ^9.1.1
+  flutter_form_builder: ^10.0.1
   form_builder_validators: ^11.0.0
   
   # 3D and graphics
