@@ -1,9 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import UserInputForm from './components/UserInputForm';
 import BackgroundDecoration from './components/BackgroundDecoration';
 import Floating3DElements from './components/Floating3DElements';
 import NutritionSummaryCard from './components/NutritionSummaryCard';
+import AuthPage from './components/AuthPage';
 import styled, { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
@@ -21,6 +22,7 @@ const CenteredContainer = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  
 `;
 
 function App() {
@@ -31,8 +33,10 @@ function App() {
       <Floating3DElements />
       <CenteredContainer>
         <Routes>
-          <Route path="/" element={<UserInputForm />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/form" element={<UserInputForm />} />
           <Route path="/summary" element={<NutritionSummaryCard />} />
+          <Route path="/" element={<Navigate to="/auth" replace />} />
         </Routes>
       </CenteredContainer>
     </Router>
