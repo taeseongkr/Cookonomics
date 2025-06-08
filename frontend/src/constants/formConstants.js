@@ -12,7 +12,8 @@ export const FORM_VALIDATION = {
     MAX: 300
   },
   BUDGET: {
-    MIN: 10000
+    MIN: 0,
+    MAX: 9999999999
   }
 };
 
@@ -43,6 +44,7 @@ export const ERROR_MESSAGES = {
   INVALID_AGE: 'Please enter a valid age between 1 and 120',
   INVALID_HEIGHT: 'Please enter a valid height between 100-250 cm',
   INVALID_WEIGHT: 'Please enter a valid weight between 30-300 kg',
+  INVALID_BUDGET: 'Please enter a valid budget (must be $0 or greater)',
   SUBMIT_ERROR: 'Failed to create profile. Please try again.'
 };
 

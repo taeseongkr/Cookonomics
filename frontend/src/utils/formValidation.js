@@ -35,6 +35,14 @@ export const validateForm = (formData) => {
     };
   }
   
+  // Validate budget
+  if (budget < FORM_VALIDATION.BUDGET.MIN || budget > FORM_VALIDATION.BUDGET.MAX) {
+    return {
+      isValid: false,
+      error: ERROR_MESSAGES.INVALID_BUDGET
+    };
+  }
+  
   return {
     isValid: true,
     error: null
@@ -45,9 +53,9 @@ export const formatFormData = (formData) => {
   return {
     age: parseInt(formData.age),
     gender: formData.gender,
-    height: parseFloat(formData.height),
+    height: parseInt(formData.height), // Height should be int, not float
     weight: parseFloat(formData.weight),
     weekly_budget: parseFloat(formData.budget),
-    food_preferences: formData.preferences || ''
+    food_preferences: formData.preferences || 'none'
   };
 };
