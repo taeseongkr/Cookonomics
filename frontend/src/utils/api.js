@@ -103,3 +103,13 @@ export const updateUserProfile = async (userId, formData) => {
 
   return await response.json();
 };
+
+export const getCurrentUserId = () => {
+  return localStorage.getItem('userId');
+};
+
+export const getCurrentUserProfile = async () => {
+  const userId = getCurrentUserId();
+  if (!userId) throw new Error('No userId found');
+  return getUserProfile(userId);
+};

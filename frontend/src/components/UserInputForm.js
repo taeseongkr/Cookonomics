@@ -16,6 +16,7 @@ import {
   FloatingFoodIcon,
   FormSection
 } from '../styles/components/UserInputForm.styles';
+import { isAuthenticated, getCurrentUserProfile } from '../utils/api';
 
 const UserInputForm = () => {
   const {
@@ -27,10 +28,55 @@ const UserInputForm = () => {
     handleSubmit
   } = useUserInputForm();
 
-  // Stepper state
+  // All hooks must be at the top level
   const [step, setStep] = useState(0);
   const totalSteps = 2;
+  const [completed, setCompleted] = useState(false);
 
+  // On mount, check if user already has a profile
+  React.useEffect(() => {
+    async function checkProfile() {
+      if (isAuthenticated()) {
+        try {
+          const profile = await getCurrentUserProfile();
+          if (profile) setCompleted(true);
+        } catch (e) {
+          // No profile found or error, do nothing
+        }
+      }
+    }
+    checkProfile();
+  }, []);
+
+  React.useEffect(() => {
+    if (submitStatus === SUBMIT_STATUS.SUCCESS) {
+      setCompleted(true);
+    }
+  }, [submitStatus]);
+
+  // Log out handler: redirect to /auth
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    window.location.href = '/auth';
+  };
+
+  // If user is not authenticated, show sign-in required message
+  if (!isAuthenticated()) {
+    return (
+      <SliderContainer>
+        <FormContainer>
+          <FormTitle>Sign In Required</FormTitle>
+          <StatusMessage className="error">
+            Please sign in with Google to create your nutrition profile.
+          </StatusMessage>
+        </FormContainer>
+      </SliderContainer>
+    );
+  }
+
+  // Stepper state and navigation (must be after completed/auth checks)
   const goNext = (e) => {
     e.preventDefault();
     setStep((prev) => Math.min(prev + 1, totalSteps - 1));
@@ -39,6 +85,27 @@ const UserInputForm = () => {
     e.preventDefault();
     setStep((prev) => Math.max(prev - 1, 0));
   };
+
+  // If completed, show completed UI
+  if (completed) {
+    return (
+      <SliderContainer>
+        <FormContainer>
+          <FormTitle>Profile Completed!</FormTitle>
+          <StatusMessage className="success">
+            <FaCheckCircle style={{ fontSize: 48, color: '#4caf50' }} />
+            <div style={{ marginTop: 16, fontSize: 20 }}>
+              Congratulations! Your nutrition profile is set up.<br />
+              You can now enjoy personalized recommendations.
+            </div>
+          </StatusMessage>
+          <Button onClick={handleLogout} style={{ marginTop: 32 }}>
+            Log Out
+          </Button>
+        </FormContainer>
+      </SliderContainer>
+    );
+  }
 
   return (
     <SliderContainer>
@@ -263,7 +330,7 @@ const UserInputForm = () => {
                 ) : (
                   <>
                     <FaRocket />
-                    Create My Nutrition Plan
+                    Let's cook together!
                   </>
                 )}
               </Button>
