@@ -56,6 +56,13 @@ export const formatFormData = (formData) => {
     height: parseInt(formData.height), // Height should be int, not float
     weight: parseFloat(formData.weight),
     weekly_budget: parseFloat(formData.budget),
-    food_preferences: formData.preferences || 'none'
+    food_preferences: formData.preferences || 'none',
+    cooking_level: formData.cooking_level || null,
+    religion: formData.religion || null,
+    goal: formData.goal || null,
+    health_issues: formData.health_issues || null,
+    allergies: formData.allergies || null,
+    prefer_cooking_time: formData.prefer_cooking_time ? parseInt(formData.prefer_cooking_time) : null,
+    exercise_routine: formData.exercise_routine || null,
   };
 };

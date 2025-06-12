@@ -10,7 +10,14 @@ export const useUserInputForm = () => {
     height: '',
     weight: '',
     budget: '',
-    preferences: ''
+    preferences: '',
+    cooking_level: '',
+    religion: '',
+    goal: '',
+    health_issues: '',
+    allergies: '',
+    prefer_cooking_time: '',
+    exercise_routine: '',
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +38,14 @@ export const useUserInputForm = () => {
       height: '',
       weight: '',
       budget: '',
-      preferences: ''
+      preferences: '',
+      cooking_level: '',
+      religion: '',
+      goal: '',
+      health_issues: '',
+      allergies: '',
+      prefer_cooking_time: '',
+      exercise_routine: '',
     });
     setSubmitStatus(null);
     setErrorMessage('');
