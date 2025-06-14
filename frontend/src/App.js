@@ -5,6 +5,7 @@ import BackgroundDecoration from './components/BackgroundDecoration';
 import Floating3DElements from './components/Floating3DElements';
 import NutritionSummaryCard from './components/NutritionSummaryCard';
 import AuthPage from './components/AuthPage';
+import RecipeShowcase from './pages/RecipeShowcase';
 import styled, { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
@@ -35,6 +36,7 @@ function App() {
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/form" element={<UserInputForm />} />
+          <Route path="/recipes" element={<RecipeShowcase />} />
           <Route path="/summary" element={<NutritionSummaryCard />} />
           <Route path="/" element={<Navigate to="/auth" replace />} />
         </Routes>

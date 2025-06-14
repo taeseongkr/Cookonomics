@@ -17,6 +17,9 @@ import {
   FormSection
 } from '../styles/components/UserInputForm.styles';
 import { isAuthenticated, getCurrentUserProfile } from '../utils/api';
+import RecipeCarousel from './RecipeCarousel';
+import './UserInputForm.css'; // Add a CSS file for fade animations
+import { useNavigate } from 'react-router-dom';
 
 const UserInputForm = () => {
   const {
@@ -27,11 +30,14 @@ const UserInputForm = () => {
     updateField,
     handleSubmit
   } = useUserInputForm();
+  const navigate = useNavigate();
 
   // All hooks must be at the top level
   const [step, setStep] = useState(0);
   const totalSteps = 2;
   const [completed, setCompleted] = useState(false);
+  const [showForm, setShowForm] = useState(true);
+  const [fadeState, setFadeState] = useState('in'); // 'in' | 'out'
 
   // On mount, check if user already has a profile
   React.useEffect(() => {
@@ -50,9 +56,14 @@ const UserInputForm = () => {
 
   React.useEffect(() => {
     if (submitStatus === SUBMIT_STATUS.SUCCESS) {
-      setCompleted(true);
+      setFadeState('out');
+      setTimeout(() => {
+        setShowForm(false);
+        setCompleted(true);
+        navigate('/recipes');
+      }, 600);
     }
-  }, [submitStatus]);
+  }, [submitStatus, navigate]);
 
   // Log out handler: redirect to /auth
   const handleLogout = () => {
@@ -87,29 +98,13 @@ const UserInputForm = () => {
   };
 
   // If completed, show completed UI
-  if (completed) {
-    return (
-      <SliderContainer>
-        <FormContainer>
-          <FormTitle>Profile Completed!</FormTitle>
-          <StatusMessage className="success">
-            <FaCheckCircle style={{ fontSize: 48, color: '#4caf50' }} />
-            <div style={{ marginTop: 16, fontSize: 20 }}>
-              Congratulations! Your nutrition profile is set up.<br />
-              You can now enjoy personalized recommendations.
-            </div>
-          </StatusMessage>
-          <Button onClick={handleLogout} style={{ marginTop: 32 }}>
-            Log Out
-          </Button>
-        </FormContainer>
-      </SliderContainer>
-    );
+  if (completed && !showForm) {
+    return null;
   }
 
   return (
     <SliderContainer>
-      <FormContainer>
+      <FormContainer className={`fade-${fadeState}`}>
         <FormTitle>Tell Us About Yourself</FormTitle>
         <form onSubmit={step === totalSteps - 1 ? handleSubmit : goNext}>
           {step === 0 && (
