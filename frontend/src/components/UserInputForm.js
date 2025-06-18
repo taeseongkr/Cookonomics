@@ -1,205 +1,364 @@
-import React, { useState, useRef } from 'react';
-import styled from 'styled-components';
-import { FaSeedling, FaChartLine, FaDollarSign, FaShoppingCart, FaRocket } from 'react-icons/fa';
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-
-const SliderContainer = styled.div`
-  width: 450px;
-  max-width: 95vw;
-`;
-
-const WelcomeCard = styled.div`
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 30px;
-  box-shadow: 0 10px 30px rgba(76, 175, 80, 0.08);
-  text-align: center;
-  min-height: 500px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const LogoIcon = styled.div`
-  font-size: 64px;
-  color: #4CAF50;
-  margin-bottom: 16px;
-`;
-
-const Title = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 12px 0;
-  color: #222;
-`;
-
-const Subtitle = styled.p`
-  font-size: 1.2rem;
-  color: #4CAF50;
-  font-weight: 600;
-  margin-bottom: 24px;
-`;
-
-const FeaturesList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
-`;
-
-const FeatureItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: rgba(76, 175, 80, 0.07);
-  border-radius: 12px;
-  padding: 12px 16px;
-  font-size: 1rem;
-`;
-
-const FormContainer = styled.div`
-  padding: 24px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 20px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  min-width: 400px;
-  min-height: 500px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const InputField = styled.input`
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 auto;
-`;
-
-const DotsContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  gap: 8px;
-`;
-
-const Dot = styled.div`
-  width: ${props => (props.active ? '24px' : '8px')};
-  height: 8px;
-  background: ${props => (props.active ? '#4CAF50' : 'rgba(255,255,255,0.5)')};
-  border-radius: 4px;
-  transition: all 0.3s;
-`;
+import React, { useState } from 'react';
+import { FaDollarSign, FaRocket, FaApple, FaCarrot, FaFish, FaEgg, FaBreadSlice, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt } from 'react-icons/fa';
+import { useUserInputForm } from '../hooks/useUserInputForm';
+import { GENDER_OPTIONS, FORM_VALIDATION, SUBMIT_STATUS, LOADING_MESSAGES, SUCCESS_MESSAGES } from '../constants/formConstants';
+import {
+  SliderContainer,
+  FormContainer,
+  FormTitle,
+  InputGroup,
+  InputWrapper,
+  InputLabel,
+  InputField,
+  SelectField,
+  Button,
+  StatusMessage,
+  FloatingFoodIcon,
+  FormSection
+} from '../styles/components/UserInputForm.styles';
+import { isAuthenticated, getCurrentUserProfile } from '../utils/api';
+import RecipeCarousel from './RecipeCarousel';
+import './UserInputForm.css'; // Add a CSS file for fade animations
+import { useNavigate } from 'react-router-dom';
 
 const UserInputForm = () => {
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState('');
-  const [height, setHeight] = useState('');
-  const [weight, setWeight] = useState('');
-  const [budget, setBudget] = useState('');
-  const [preferences, setPreferences] = useState('');
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const sliderRef = useRef();
+  const {
+    formData,
+    isLoading,
+    submitStatus,
+    errorMessage,
+    updateField,
+    handleSubmit
+  } = useUserInputForm();
+  const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    // Handle form submission logic here
+  // All hooks must be at the top level
+  const [step, setStep] = useState(0);
+  const totalSteps = 2;
+  const [completed, setCompleted] = useState(false);
+  const [showForm, setShowForm] = useState(true);
+  const [fadeState, setFadeState] = useState('in'); // 'in' | 'out'
+
+  // On mount, check if user already has a profile
+  React.useEffect(() => {
+    async function checkProfile() {
+      if (isAuthenticated()) {
+        try {
+          const profile = await getCurrentUserProfile();
+          if (profile) setCompleted(true);
+        } catch (e) {
+          // No profile found or error, do nothing
+        }
+      }
+    }
+    checkProfile();
+  }, []);
+
+  React.useEffect(() => {
+    if (submitStatus === SUBMIT_STATUS.SUCCESS) {
+      setFadeState('out');
+      setTimeout(() => {
+        setShowForm(false);
+        setCompleted(true);
+        navigate('/recipes');
+      }, 600);
+    }
+  }, [submitStatus, navigate]);
+
+  // Log out handler: redirect to /auth
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    window.location.href = '/auth';
   };
 
-  const settings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: false,
-    swipe: true,
-    beforeChange: (oldIndex, newIndex) => setCurrentSlide(newIndex),
-    draggable: true,
+  // If user is not authenticated, show sign-in required message
+  if (!isAuthenticated()) {
+    return (
+      <SliderContainer>
+        <FormContainer>
+          <FormTitle>Sign In Required</FormTitle>
+          <StatusMessage className="error">
+            Please sign in with Google to create your nutrition profile.
+          </StatusMessage>
+        </FormContainer>
+      </SliderContainer>
+    );
+  }
+
+  // Stepper state and navigation (must be after completed/auth checks)
+  const goNext = (e) => {
+    e.preventDefault();
+    setStep((prev) => Math.min(prev + 1, totalSteps - 1));
   };
+  const goBack = (e) => {
+    e.preventDefault();
+    setStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  // If completed, show completed UI
+  if (completed && !showForm) {
+    return null;
+  }
 
   return (
     <SliderContainer>
-      <Slider ref={sliderRef} {...settings} initialSlide={0}>
-        <div>
-          <WelcomeCard>
-            <LogoIcon><FaSeedling /></LogoIcon>
-            <Title>Cookonomics</Title>
-            <Subtitle>Your Personal Nutrition & Recipe Assistant</Subtitle>
-            <FeaturesList>
-              <FeatureItem><FaChartLine color="#388e3c" size={24} /> Personalized Nutrition: Get recipes tailored to your health goals</FeatureItem>
-              <FeatureItem><FaDollarSign color="#388e3c" size={24} /> Budget-Friendly: Find healthy meals within your budget</FeatureItem>
-              <FeatureItem><FaShoppingCart color="#388e3c" size={24} /> Smart Shopping: Generate shopping lists with nutritional value</FeatureItem>
-            </FeaturesList>
-            <Button type="button" onClick={() => sliderRef.current.slickGoTo(1)}><FaRocket /> Get Started</Button>
-          </WelcomeCard>
-        </div>
-        <div>
-          <FormContainer>
-            <form onSubmit={handleSubmit}>
-              <InputField
-                type="number"
-                placeholder="Age"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-              />
-              <InputField
-                type="text"
-                placeholder="Gender"
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-              />
-              <InputField
-                type="number"
-                placeholder="Height (cm)"
-                value={height}
-                onChange={(e) => setHeight(e.target.value)}
-              />
-              <InputField
-                type="number"
-                placeholder="Weight (kg)"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-              />
-              <InputField
-                type="number"
-                placeholder="Weekly Budget ($)"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-              />
-              <InputField
-                type="text"
-                placeholder="Preferences"
-                value={preferences}
-                onChange={(e) => setPreferences(e.target.value)}
-              />
-              <Button type="submit"><FaRocket /> Submit</Button>
-            </form>
-          </FormContainer>
-        </div>
-      </Slider>
-      <DotsContainer>
-        <Dot active={currentSlide === 0} />
-        <Dot active={currentSlide === 1} />
-      </DotsContainer>
+      <FormContainer className={`fade-${fadeState}`}>
+        <FormTitle>Tell Us About Yourself</FormTitle>
+        <form onSubmit={step === totalSteps - 1 ? handleSubmit : goNext}>
+          {step === 0 && (
+            <>
+              <FormSection>
+                <InputGroup delay={0.1}>
+                  <InputWrapper>
+                    <InputLabel><FaApple /> Age</InputLabel>
+                    <InputField
+                      type="number"
+                      placeholder="Enter your age"
+                      value={formData.age}
+                      onChange={(e) => updateField('age', e.target.value)}
+                      min={FORM_VALIDATION.AGE.MIN}
+                      max={FORM_VALIDATION.AGE.MAX}
+                    />
+                    <FloatingFoodIcon><FaApple /></FloatingFoodIcon>
+                  </InputWrapper>
+                  <InputWrapper>
+                    <InputLabel><FaCarrot /> Gender</InputLabel>
+                    <SelectField
+                      value={formData.gender}
+                      onChange={(e) => updateField('gender', e.target.value)}
+                    >
+                      {GENDER_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <FloatingFoodIcon><FaCarrot /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.2}>
+                  <InputWrapper>
+                    <InputLabel><FaFish /> Height (cm)</InputLabel>
+                    <InputField
+                      type="number"
+                      placeholder="Enter your height"
+                      value={formData.height}
+                      onChange={(e) => updateField('height', e.target.value)}
+                      min={FORM_VALIDATION.HEIGHT.MIN}
+                      max={FORM_VALIDATION.HEIGHT.MAX}
+                    />
+                    <FloatingFoodIcon><FaFish /></FloatingFoodIcon>
+                  </InputWrapper>
+                  <InputWrapper>
+                    <InputLabel><FaEgg /> Weight (kg)</InputLabel>
+                    <InputField
+                      type="number"
+                      placeholder="Enter your weight"
+                      value={formData.weight}
+                      onChange={(e) => updateField('weight', e.target.value)}
+                      min={FORM_VALIDATION.WEIGHT.MIN}
+                      max={FORM_VALIDATION.WEIGHT.MAX}
+                    />
+                    <FloatingFoodIcon><FaEgg /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+              </FormSection>
+              <FormSection>
+                <InputGroup delay={0.3} className="full-width">
+                  <InputWrapper>
+                    <InputLabel><FaDollarSign /> Weekly Budget (₩)</InputLabel>
+                    <InputField
+                      type="number"
+                      placeholder="Enter your weekly food budget"
+                      value={formData.budget}
+                      onChange={(e) => updateField('budget', e.target.value)}
+                      min={FORM_VALIDATION.BUDGET.MIN}
+                    />
+                    <FloatingFoodIcon><FaDollarSign /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.35} className="full-width">
+                  <InputWrapper>
+                    <InputLabel><FaCalendarAlt /> Start Date</InputLabel>
+                    <InputField
+                      type="date"
+                      value={formData.start_date || ''}
+                      onChange={(e) => updateField('start_date', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]} // Today's date as minimum
+                    />
+                    <FloatingFoodIcon><FaCalendarAlt /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.4} className="full-width">
+                  <InputWrapper>
+                    <InputLabel><FaCalendarAlt /> End Date</InputLabel>
+                    <InputField
+                      type="date"
+                      value={formData.end_date || ''}
+                      onChange={(e) => updateField('end_date', e.target.value)}
+                      min={formData.start_date || new Date().toISOString().split('T')[0]} // Start date as minimum
+                    />
+                    <FloatingFoodIcon><FaCalendarAlt /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.45} className="full-width">
+                  <InputWrapper>
+                    <InputLabel><FaBreadSlice /> Food Preferences</InputLabel>
+                    <InputField
+                      type="text"
+                      placeholder="e.g., vegetarian, gluten-free, low-carb, dairy-free"
+                      value={formData.preferences}
+                      onChange={(e) => updateField('preferences', e.target.value)}
+                    />
+                    <FloatingFoodIcon><FaBreadSlice /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+              </FormSection>
+            </>
+          )}
+          {step === 1 && (
+            <>
+              <FormSection>
+                <InputGroup delay={0.5} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Cooking Level</InputLabel>
+                    <SelectField
+                      value={formData.cooking_level}
+                      onChange={(e) => updateField('cooking_level', e.target.value)}
+                    >
+                      <option value="">Select level</option>
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </SelectField>
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.6} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Religion</InputLabel>
+                    <InputField
+                      type="text"
+                      placeholder="e.g., Halal, Kosher, None"
+                      value={formData.religion}
+                      onChange={(e) => updateField('religion', e.target.value)}
+                    />
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.7} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Goal</InputLabel>
+                    <InputField
+                      type="text"
+                      placeholder="e.g., Weight loss, Muscle gain, Healthy eating"
+                      value={formData.goal}
+                      onChange={(e) => updateField('goal', e.target.value)}
+                    />
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.8} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Health Issues</InputLabel>
+                    <InputField
+                      type="text"
+                      placeholder="e.g., Diabetes, Hypertension, None"
+                      value={formData.health_issues}
+                      onChange={(e) => updateField('health_issues', e.target.value)}
+                    />
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.9} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Allergies</InputLabel>
+                    <InputField
+                      type="text"
+                      placeholder="e.g., Peanuts, Shellfish, None"
+                      value={formData.allergies}
+                      onChange={(e) => updateField('allergies', e.target.value)}
+                    />
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={1.0} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Preferred Cooking Time (minutes)</InputLabel>
+                    <InputField
+                      type="number"
+                      placeholder="e.g., 30"
+                      value={formData.prefer_cooking_time}
+                      onChange={(e) => updateField('prefer_cooking_time', e.target.value)}
+                      min={1}
+                      max={480}
+                    />
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={1.1} className="full-width">
+                  <InputWrapper>
+                    <InputLabel>Exercise Routine</InputLabel>
+                    <InputField
+                      type="text"
+                      placeholder="e.g., 3x/week gym, daily walking, None"
+                      value={formData.exercise_routine}
+                      onChange={(e) => updateField('exercise_routine', e.target.value)}
+                    />
+                  </InputWrapper>
+                </InputGroup>
+              </FormSection>
+            </>
+          )}
+
+          {/* Status Messages */}
+          {isLoading && (
+            <StatusMessage className="loading">
+              <FaSpinner className="spinner" />
+              {LOADING_MESSAGES.CREATING_PROFILE}
+            </StatusMessage>
+          )}
+          {submitStatus === SUBMIT_STATUS.SUCCESS && (
+            <StatusMessage className="success">
+              <FaCheckCircle />
+              {SUCCESS_MESSAGES.PROFILE_CREATED}
+            </StatusMessage>
+          )}
+          {submitStatus === SUBMIT_STATUS.ERROR && (
+            <StatusMessage className="error">
+              <FaExclamationTriangle />
+              {errorMessage}
+            </StatusMessage>
+          )}
+
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+            {step > 0 && (
+              <Button type="button" onClick={goBack} disabled={isLoading}>
+                Back
+              </Button>
+            )}
+            <div style={{ flex: 1 }} />
+            {step < totalSteps - 1 ? (
+              <Button type="button" onClick={goNext} disabled={isLoading}>
+                Next
+              </Button>
+            ) : (
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <FaSpinner className="spinner" />
+                    {LOADING_MESSAGES.CREATING_BUTTON}
+                  </>
+                ) : (
+                  <>
+                    <FaRocket />
+                    Let's cook together!
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </form>
+      </FormContainer>
     </SliderContainer>
   );
 };
 
-export default UserInputForm; 
+export default UserInputForm;
