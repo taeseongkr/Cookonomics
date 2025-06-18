@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { validateForm, formatFormData } from '../utils/formValidation';
-import { createUserProfile } from '../utils/api';
+import { createProfileAndStartWorkflow } from '../utils/api';
 import { SUBMIT_STATUS, ERROR_MESSAGES } from '../constants/formConstants';
 
 export const useUserInputForm = () => {
+  // Calculate default dates
+  const today = new Date();
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
+  
   const [formData, setFormData] = useState({
     age: '',
     gender: '',
     height: '',
     weight: '',
     budget: '',
+    start_date: today.toISOString().split('T')[0], // Default to today
+    end_date: nextWeek.toISOString().split('T')[0], // Default to next week
     preferences: '',
     cooking_level: '',
     religion: '',
@@ -23,12 +30,27 @@ export const useUserInputForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [workflowData, setWorkflowData] = useState(null);
 
   const updateField = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Auto-adjust end date when start date changes
+      if (field === 'start_date' && value) {
+        const startDate = new Date(value);
+        const currentEndDate = new Date(prev.end_date);
+        
+        // If end date is before or same as new start date, adjust it
+        if (currentEndDate <= startDate) {
+          const newEndDate = new Date(startDate);
+          newEndDate.setDate(startDate.getDate() + 7); // Default to 7 days later
+          newData.end_date = newEndDate.toISOString().split('T')[0];
+        }
+      }
+      
+      return newData;
+    });
   };
 
   const resetForm = () => {
@@ -70,8 +92,12 @@ export const useUserInputForm = () => {
     
     try {
       const formattedData = formatFormData(formData);
-      const result = await createUserProfile(formattedData);
-      console.log('Profile created successfully:', result);
+      const result = await createProfileAndStartWorkflow(formattedData);
+      console.log('Profile and workflow created successfully:', result);
+      
+      // Store workflow data for the recipes page
+      setWorkflowData(result);
+      localStorage.setItem('workflowData', JSON.stringify(result));
       
       setSubmitStatus(SUBMIT_STATUS.SUCCESS);
       
@@ -94,6 +120,7 @@ export const useUserInputForm = () => {
     isLoading,
     submitStatus,
     errorMessage,
+    workflowData,
     updateField,
     resetForm,
     handleSubmit

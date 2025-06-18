@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaDollarSign, FaRocket, FaApple, FaCarrot, FaFish, FaEgg, FaBreadSlice, FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaDollarSign, FaRocket, FaApple, FaCarrot, FaFish, FaEgg, FaBreadSlice, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaCalendarAlt } from 'react-icons/fa';
 import { useUserInputForm } from '../hooks/useUserInputForm';
 import { GENDER_OPTIONS, FORM_VALIDATION, SUBMIT_STATUS, LOADING_MESSAGES, SUCCESS_MESSAGES } from '../constants/formConstants';
 import {
@@ -179,7 +179,31 @@ const UserInputForm = () => {
                     <FloatingFoodIcon><FaDollarSign /></FloatingFoodIcon>
                   </InputWrapper>
                 </InputGroup>
+                <InputGroup delay={0.35} className="full-width">
+                  <InputWrapper>
+                    <InputLabel><FaCalendarAlt /> Start Date</InputLabel>
+                    <InputField
+                      type="date"
+                      value={formData.start_date || ''}
+                      onChange={(e) => updateField('start_date', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]} // Today's date as minimum
+                    />
+                    <FloatingFoodIcon><FaCalendarAlt /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
                 <InputGroup delay={0.4} className="full-width">
+                  <InputWrapper>
+                    <InputLabel><FaCalendarAlt /> End Date</InputLabel>
+                    <InputField
+                      type="date"
+                      value={formData.end_date || ''}
+                      onChange={(e) => updateField('end_date', e.target.value)}
+                      min={formData.start_date || new Date().toISOString().split('T')[0]} // Start date as minimum
+                    />
+                    <FloatingFoodIcon><FaCalendarAlt /></FloatingFoodIcon>
+                  </InputWrapper>
+                </InputGroup>
+                <InputGroup delay={0.45} className="full-width">
                   <InputWrapper>
                     <InputLabel><FaBreadSlice /> Food Preferences</InputLabel>
                     <InputField

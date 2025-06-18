@@ -28,7 +28,9 @@ const CarouselRow = styled.div`
   padding: 20px 0;
 `;
 
-const CardSlot = styled.div`
+const CardSlot = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['translateX', 'scale', 'rotateY', 'blur', 'opacity', 'z'].includes(prop)
+})`
   width: 38vw;
   max-width: 500px;
   min-width: 350px;

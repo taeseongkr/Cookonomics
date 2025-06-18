@@ -2,7 +2,7 @@ import React from 'react';
 import { FaApple, FaCarrot, FaHeart, FaStar, FaSeedling } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import { signInWithGoogle } from '../utils/api';
+import { signInWithGoogle, checkUserHasProfile } from '../utils/api';
 import {
   AuthContainer,
   AuthCard,
