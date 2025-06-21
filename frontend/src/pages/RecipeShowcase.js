@@ -3,8 +3,10 @@ import { SliderContainer } from '../styles/components/UserInputForm.styles';
 import RecipeCarousel from '../components/RecipeCarousel';
 import RecipeSelector from '../components/RecipeSelector';
 import MealPlanDisplay from '../components/MealPlanDisplay';
+import WorkflowSelector from '../components/WorkflowSelector';
 import { useWorkflowWebSocket } from '../hooks/useWorkflowWebSocket';
 import styled from 'styled-components';
+import { isAuthenticated, checkUserHasProfile, getCurrentUserProfile, getUserWorkflows, createWorkflowForExistingProfile } from '../utils/api';
 
 const LoadingContainer = styled.div`
   display: flex;
@@ -103,29 +105,109 @@ const RecipeShowcase = () => {
   const [fallbackRecipes, setFallbackRecipes] = useState([]);
   const [showSelector, setShowSelector] = useState(false);
   const [selectedRecipeData, setSelectedRecipeData] = useState(null);
+  const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
+  const [showWorkflowSelector, setShowWorkflowSelector] = useState(false);
+  const [currentMealPlan, setCurrentMealPlan] = useState(null);
+  const [appState, setAppState] = useState('loading'); // 'loading', 'workflow-selector', 'websocket', 'meal-plan', 'fallback'
 
-  // Get workflow data from localStorage
+  // Initialize the app flow
   useEffect(() => {
-    const workflowData = localStorage.getItem('workflowData');
-    if (workflowData) {
-      try {
-        const parsed = JSON.parse(workflowData);
-        console.log('Workflow data loaded:', parsed);
-        if (parsed.execution && parsed.execution.websocket_session_id) {
-          setSessionId(parsed.execution.websocket_session_id);
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      setAppState('loading');
+      
+      // Check if user is authenticated
+      if (isAuthenticated()) {
+        const hasProfile = await checkUserHasProfile();
+        
+        if (hasProfile) {
+          // User has profile - check for existing workflows
+          console.log('User has profile, checking for existing workflows');
+          const userProfile = await getCurrentUserProfile();
+          const workflows = await getUserWorkflows(userProfile.id);
+          
+          if (workflows && workflows.length > 0) {
+            // User has existing workflows - show selector
+            console.log('User has existing workflows, showing selector');
+            setAppState('workflow-selector');
+          } else {
+            // User has no workflows - create one automatically
+            console.log('User has no workflows, creating new one');
+            await createNewWorkflowForUser(userProfile);
+          }
         } else {
-          console.error('No websocket session ID found in workflow data');
-          loadFallbackRecipes();
+          // User has no profile - redirect to form
+          console.log('User has no profile, redirecting to form');
+          window.location.href = '/form';
         }
-      } catch (error) {
-        console.error('Error parsing workflow data:', error);
+      } else {
+        // Case 3: Not authenticated - show fallback
+        console.log('User not authenticated, showing fallback');
+        loadFallbackRecipes();
+        setAppState('fallback');
+      }
+      
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      loadFallbackRecipes();
+      setAppState('fallback');
+    }
+  };
+
+  // Create new workflow for user with default settings
+  const createNewWorkflowForUser = async (userProfile) => {
+    try {
+      setIsCreatingWorkflow(true);
+      
+      const workflowData = {
+        budget: 100000, // Default budget of 100,000 KRW
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 7 days from now
+      };
+      
+      const workflowResult = await createWorkflowForExistingProfile(userProfile.id, workflowData);
+      console.log('Auto-created workflow for user:', workflowResult);
+      
+      if (workflowResult.execution && workflowResult.execution.websocket_session_id) {
+        setSessionId(workflowResult.execution.websocket_session_id);
+        setAppState('websocket');
+      } else {
+        console.error('No websocket session ID in auto-created workflow');
+        setAppState('fallback');
         loadFallbackRecipes();
       }
-    } else {
-      console.log('No workflow data found, using fallback recipes');
+    } catch (error) {
+      console.error('Error auto-creating workflow:', error);
+      setAppState('fallback');
       loadFallbackRecipes();
+    } finally {
+      setIsCreatingWorkflow(false);
     }
-  }, []);
+  };
+
+  // Handle workflow selection from WorkflowSelector
+  const handleWorkflowSelected = (workflowWithMealPlans) => {
+    console.log('Workflow selected:', workflowWithMealPlans);
+    setCurrentMealPlan(workflowWithMealPlans);
+    setAppState('meal-plan');
+  };
+
+  // Handle new workflow creation from WorkflowSelector
+  const handleCreateNewWorkflow = (workflowResult) => {
+    console.log('New workflow created:', workflowResult);
+    
+    if (workflowResult.execution && workflowResult.execution.websocket_session_id) {
+      setSessionId(workflowResult.execution.websocket_session_id);
+      setAppState('websocket');
+    } else {
+      console.error('No websocket session ID in new workflow');
+      loadFallbackRecipes();
+      setAppState('fallback');
+    }
+  };
 
   const loadFallbackRecipes = () => {
     // Mock recipes as fallback
@@ -224,33 +306,36 @@ const RecipeShowcase = () => {
     setShowSelector(!showSelector);
   };
 
-  // Show loading state
-  if (sessionId && isLoading) {
+  // Show loading state for workflow creation or WebSocket loading
+  if ((sessionId && isLoading) || isCreatingWorkflow) {
     return (
-      <SliderContainer>
+      <>
         <LoadingContainer>
           <LoadingSpinner />
-          <LoadingText>Generating Your Personalized Recipes</LoadingText>
+          <LoadingText>
+            {isCreatingWorkflow ? 'Setting up your personalized meal plan...' : 'Generating Your Personalized Recipes'}
+          </LoadingText>
           <StatusText>
-            {workflowStatus === 'connected' && 'Connected to meal planning service...'}
-            {workflowStatus === 'processing' && 'Analyzing your preferences...'}
-            {workflowStatus === 'connecting' && 'Connecting to server...'}
+            {isCreatingWorkflow && 'Creating workflow for your profile...'}
+            {sessionId && workflowStatus === 'connected' && 'Connected to meal planning service...'}
+            {sessionId && workflowStatus === 'processing' && 'Analyzing your preferences...'}
+            {sessionId && workflowStatus === 'connecting' && 'Connecting to server...'}
           </StatusText>
         </LoadingContainer>
-      </SliderContainer>
+      </>
     );
   }
 
   // Show error state
   if (sessionId && error) {
     return (
-      <SliderContainer>
+      <>
         <ErrorContainer>
           <h2>Oops! Something went wrong</h2>
           <p>{error}</p>
           <RetryButton onClick={handleRetry}>Try Again</RetryButton>
         </ErrorContainer>
-      </SliderContainer>
+      </>
     );
   }
 
@@ -258,39 +343,30 @@ const RecipeShowcase = () => {
   const recipesToShow = sessionId && wsRecipes.length > 0 ? wsRecipes : fallbackRecipes;
 
   return (
-    <SliderContainer>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {sessionId && isConnected && (
-          <div style={{ 
-            marginBottom: '20px', 
-            textAlign: 'center',
-            color: '#667eea',
-            fontSize: '1.1rem',
-            fontWeight: '600'
-          }}>
-            ✨ Personalized content generated just for you!
-          </div>
-        )}
-        {!sessionId && (
-          <div style={{ 
-            marginBottom: '20px', 
-            textAlign: 'center',
-            color: '#764ba2',
-            fontSize: '1rem'
-          }}>
-            🍽️ Sample recipes (complete the form to get personalized recommendations)
-          </div>
-        )}
-        
-        {/* Display meal plan if available */}
-        {mealPlan && (
-          <div style={{ width: '100%', marginBottom: '30px' }}>
-            <MealPlanDisplay mealPlan={mealPlan} />
-          </div>
-        )}
-        
-        {/* Display recipes if available */}
-        {recipesToShow.length > 0 && (
+    <>
+      {/* Display meal plan if available - full width outside SliderContainer */}
+      {mealPlan && (
+        <div style={{ width: '100%', marginBottom: '30px' }}>
+          <MealPlanDisplay data={mealPlan} />
+        </div>
+      )}
+      
+      <SliderContainer>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {sessionId && isConnected && (
+            <div style={{ 
+              marginBottom: '20px', 
+              textAlign: 'center',
+              color: '#667eea',
+              fontSize: '1.1rem',
+              fontWeight: '600'
+            }}>
+              ✨ Personalized content generated just for you!
+            </div>
+          )}
+          
+          {/* Display recipes if available */}
+          {recipesToShow.length > 0 && (
           <>
             <RecipeCarousel recipes={recipesToShow} />
             
@@ -331,6 +407,7 @@ const RecipeShowcase = () => {
         )}
       </div>
     </SliderContainer>
+    </>
   );
 };
 

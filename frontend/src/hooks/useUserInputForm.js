@@ -97,7 +97,6 @@ export const useUserInputForm = () => {
       
       // Store workflow data for the recipes page
       setWorkflowData(result);
-      localStorage.setItem('workflowData', JSON.stringify(result));
       
       setSubmitStatus(SUBMIT_STATUS.SUCCESS);
       

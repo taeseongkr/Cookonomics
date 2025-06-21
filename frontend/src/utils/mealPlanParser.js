@@ -8,21 +8,33 @@
  * @returns {Object} Parsed meal plan data
  */
 export const parseMealPlan = (data) => {
+  console.log('Parsing meal plan data:', data);
+  
   // If data is already structured (from backend), return as is
   if (typeof data === 'object' && data.meal_plans) {
+    console.log('Data already structured with meal_plans');
     return data;
-  }
-
-  // If data is a string (markdown format), parse it
-  if (typeof data === 'string') {
-    return parseMarkdownMealPlan(data);
   }
 
   // If data is an array of meal plans, wrap it
   if (Array.isArray(data)) {
+    console.log('Data is array, wrapping in meal_plans');
     return { meal_plans: data };
   }
 
+  // If data is a single meal plan object, wrap it in an array
+  if (typeof data === 'object' && data.name && data.cost && data.ingredients) {
+    console.log('Data is single meal plan object, wrapping in array');
+    return { meal_plans: [data] };
+  }
+
+  // If data is a string (markdown format), parse it
+  if (typeof data === 'string') {
+    console.log('Data is string, parsing as markdown');
+    return parseMarkdownMealPlan(data);
+  }
+
+  console.error('Invalid meal plan data format:', data);
   throw new Error('Invalid meal plan data format');
 };
 
@@ -172,4 +184,79 @@ export const calculateTotalNutrition = (mealPlans) => {
   });
 
   return totals;
+};
+
+/**
+ * Test function to verify the parser with sample data
+ */
+export const testMealPlanParser = () => {
+  console.log('Testing meal plan parser...');
+  
+  // Test structured data format
+  const structuredData = {
+    meal_plans: [
+      {
+        name: "Korean Bibimbap Bowl",
+        date: "2024-01-15",
+        cost: 12.50,
+        description: "A healthy Korean mixed rice bowl with vegetables and protein",
+        image_url: "https://example.com/bibimbap.jpg",
+        ingredients: [
+          { ingredient: "Rice", quantity: "1", unit: "cup" },
+          { ingredient: "Spinach", quantity: "100", unit: "g" },
+          { ingredient: "Carrots", quantity: "1", unit: "medium" }
+        ],
+        instructions: [
+          "Cook rice according to package directions",
+          "Blanch spinach and season with sesame oil",
+          "Julienne carrots and sauté briefly"
+        ],
+        nutrition: {
+          calories: "450",
+          protein: "18g",
+          carbohydrates: "65g",
+          fat: "12g"
+        }
+      }
+    ]
+  };
+  
+  // Test array format
+  const arrayData = [
+    {
+      name: "Korean Kimchi Fried Rice",
+      date: "2024-01-16",
+      cost: 8.75,
+      ingredients: ["Rice", "Kimchi", "Eggs", "Scallions"],
+      instructions: ["Heat oil in pan", "Add rice and kimchi", "Scramble eggs"]
+    }
+  ];
+  
+  // Test single object format
+  const singleObjectData = {
+    name: "Korean Bulgogi",
+    date: "2024-01-17",
+    cost: 15.25,
+    ingredients: ["Beef", "Soy sauce", "Garlic", "Pear"],
+    instructions: "Marinate beef and grill until cooked"
+  };
+  
+  try {
+    console.log('Testing structured data:');
+    const result1 = parseMealPlan(structuredData);
+    console.log('✓ Structured data parsed successfully:', result1);
+    
+    console.log('Testing array data:');
+    const result2 = parseMealPlan(arrayData);
+    console.log('✓ Array data parsed successfully:', result2);
+    
+    console.log('Testing single object data:');
+    const result3 = parseMealPlan(singleObjectData);
+    console.log('✓ Single object data parsed successfully:', result3);
+    
+    return true;
+  } catch (error) {
+    console.error('✗ Parser test failed:', error);
+    return false;
+  }
 };

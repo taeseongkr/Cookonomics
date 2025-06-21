@@ -29,17 +29,27 @@ const AuthPage = () => {
       const backendResponse = await signInWithGoogle(idToken);
       
       console.log("Backend Response:", backendResponse);
-      // Assuming backendResponse contains { access_token, token_type, user_id, email, expires_in }
-      // Store the token (e.g., in localStorage or context)
+      // Store the token and user info
       localStorage.setItem('authToken', backendResponse.access_token);
       localStorage.setItem('userId', backendResponse.user_id);
       localStorage.setItem('userEmail', backendResponse.email);
       
-      // Navigate to the form page or dashboard
-      navigate('/form'); 
+      // Check if user already has a profile
+      try {
+        const hasProfile = await checkUserHasProfile();
+        if (hasProfile) {
+          console.log("User has existing profile, navigating to dashboard");
+          navigate('/dashboard');
+        } else {
+          console.log("No profile found, navigating to form");
+          navigate('/form');
+        }
+      } catch (profileError) {
+        console.log("Error checking profile, navigating to form:", profileError);
+        navigate('/form');
+      }
     } catch (error) {
       console.error("Google Sign-In Error after backend call:", error);
-      // Handle error (e.g., show a notification to the user)
       alert(error.message || "Google Sign-In failed. Please try again.");
     }
   };
