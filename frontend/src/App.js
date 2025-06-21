@@ -6,6 +6,14 @@ import Floating3DElements from './components/Floating3DElements';
 import NutritionSummaryCard from './components/NutritionSummaryCard';
 import AuthPage from './components/AuthPage';
 import RecipeShowcase from './pages/RecipeShowcase';
+import TestMealPlanPage from './pages/TestMealPlanPage';
+import NewFeaturesTest from './pages/NewFeaturesTest';
+import Dashboard from './pages/Dashboard';
+import MealPlansPage from './pages/MealPlansPage';
+import CalendarPage from './pages/CalendarPage';
+import ProfilePage from './pages/ProfilePage';
+import Layout from './components/Layout';
+import { isAuthenticated } from './utils/api';
 import styled, { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
@@ -23,24 +31,136 @@ const CenteredContainer = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  
 `;
+
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  return isAuthenticated() ? (
+    <Layout>{children}</Layout>
+  ) : (
+    <Navigate to="/auth" replace />
+  );
+};
 
 function App() {
   return (
     <Router>
       <GlobalStyle />
-      <BackgroundDecoration />
-      <Floating3DElements />
-      <CenteredContainer>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/form" element={<UserInputForm />} />
-          <Route path="/recipes" element={<RecipeShowcase />} />
-          <Route path="/summary" element={<NutritionSummaryCard />} />
-          <Route path="/" element={<Navigate to="/auth" replace />} />
-        </Routes>
-      </CenteredContainer>
+      
+      <Routes>
+        {/* Standalone routes (no layout) */}
+        <Route 
+          path="/auth" 
+          element={
+            <>
+              <BackgroundDecoration />
+              <Floating3DElements />
+              <CenteredContainer>
+                <AuthPage />
+              </CenteredContainer>
+            </>
+          } 
+        />
+        <Route 
+          path="/form" 
+          element={
+            <>
+              <BackgroundDecoration />
+              <Floating3DElements />
+              <CenteredContainer>
+                <UserInputForm />
+              </CenteredContainer>
+            </>
+          } 
+        />
+        
+        {/* Test routes (standalone) */}
+        <Route 
+          path="/recipes" 
+          element={
+            <>
+              <BackgroundDecoration />
+              <Floating3DElements />
+              <CenteredContainer>
+                <RecipeShowcase />
+              </CenteredContainer>
+            </>
+          } 
+        />
+        <Route 
+          path="/summary" 
+          element={
+            <>
+              <BackgroundDecoration />
+              <Floating3DElements />
+              <CenteredContainer>
+                <NutritionSummaryCard />
+              </CenteredContainer>
+            </>
+          } 
+        />
+        <Route 
+          path="/test-meal-plan" 
+          element={
+            <>
+              <BackgroundDecoration />
+              <Floating3DElements />
+              <CenteredContainer>
+                <TestMealPlanPage />
+              </CenteredContainer>
+            </>
+          } 
+        />
+        <Route 
+          path="/test-features" 
+          element={
+            <>
+              <BackgroundDecoration />
+              <Floating3DElements />
+              <CenteredContainer>
+                <NewFeaturesTest />
+              </CenteredContainer>
+            </>
+          } 
+        />
+
+        {/* Protected routes (with layout) */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/meal-plans" 
+          element={
+            <ProtectedRoute>
+              <MealPlansPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/calendar" 
+          element={
+            <ProtectedRoute>
+              <CalendarPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/auth" replace />} />
+      </Routes>
     </Router>
   );
 }

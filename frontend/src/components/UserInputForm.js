@@ -14,10 +14,13 @@ import {
   Button,
   StatusMessage,
   FloatingFoodIcon,
-  FormSection
+  FormSection,
+  NavigationButtons,
+  BackButton,
+  ProgressBar,
+  ProgressFill
 } from '../styles/components/UserInputForm.styles';
 import { isAuthenticated, getCurrentUserProfile } from '../utils/api';
-import RecipeCarousel from './RecipeCarousel';
 import './UserInputForm.css'; // Add a CSS file for fade animations
 import { useNavigate } from 'react-router-dom';
 
@@ -60,7 +63,7 @@ const UserInputForm = () => {
       setTimeout(() => {
         setShowForm(false);
         setCompleted(true);
-        navigate('/recipes');
+        navigate('/dashboard');
       }, 600);
     }
   }, [submitStatus, navigate]);
@@ -97,15 +100,76 @@ const UserInputForm = () => {
     setStep((prev) => Math.max(prev - 1, 0));
   };
 
-  // If completed, show completed UI
+  // If completed, show completed UI with option to create new meal plan
   if (completed && !showForm) {
-    return null;
+    return (
+      <SliderContainer>
+        <FormContainer>
+          <FormTitle>🎉 Profile Complete!</FormTitle>
+          <StatusMessage className="success">
+            <FaCheckCircle style={{ marginRight: '8px' }} />
+            Your nutrition profile is all set up!
+          </StatusMessage>
+          <div style={{ 
+            marginTop: '20px', 
+            textAlign: 'center',
+            padding: '20px',
+            backgroundColor: '#f7fafc',
+            borderRadius: '15px',
+            border: '2px solid #e2e8f0'
+          }}>
+            <p style={{ color: '#4a5568', marginBottom: '20px' }}>
+              Ready to create a personalized meal plan?
+            </p>
+            <Button 
+              type="button" 
+              onClick={() => {
+                // Navigate directly to dashboard where workflow will be triggered
+                navigate('/dashboard');
+              }}
+              style={{ 
+                background: 'linear-gradient(135deg, #48bb78, #38a169)',
+                marginBottom: '10px'
+              }}
+            >
+              <FaRocket style={{ marginRight: '8px' }} />
+              Generate Meal Plan Now
+            </Button>
+            <br />
+            <button 
+              type="button"
+              onClick={() => {
+                setShowForm(true);
+                setCompleted(false);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#667eea',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                marginBottom: '10px'
+              }}
+            >
+              Customize Budget & Dates
+            </button>
+          </div>
+        </FormContainer>
+      </SliderContainer>
+    );
   }
 
   return (
     <SliderContainer>
       <FormContainer className={`fade-${fadeState}`}>
         <FormTitle>Tell Us About Yourself</FormTitle>
+        
+        {/* Progress indicator */}
+        <ProgressBar>
+          <ProgressFill progress={((step + 1) / totalSteps) * 100} />
+        </ProgressBar>
+        
         <form onSubmit={step === totalSteps - 1 ? handleSubmit : goNext}>
           {step === 0 && (
             <>
@@ -168,7 +232,7 @@ const UserInputForm = () => {
               <FormSection>
                 <InputGroup delay={0.3} className="full-width">
                   <InputWrapper>
-                    <InputLabel><FaDollarSign /> Weekly Budget (₩)</InputLabel>
+                    <InputLabel><FaDollarSign /> Weekly Budget ($)</InputLabel>
                     <InputField
                       type="number"
                       placeholder="Enter your weekly food budget"
@@ -328,16 +392,15 @@ const UserInputForm = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
+          <NavigationButtons>
             {step > 0 && (
-              <Button type="button" onClick={goBack} disabled={isLoading}>
-                Back
-              </Button>
+              <BackButton type="button" onClick={goBack} disabled={isLoading}>
+                ← Back
+              </BackButton>
             )}
-            <div style={{ flex: 1 }} />
             {step < totalSteps - 1 ? (
               <Button type="button" onClick={goNext} disabled={isLoading}>
-                Next
+                Next Step →
               </Button>
             ) : (
               <Button type="submit" disabled={isLoading}>
@@ -349,12 +412,12 @@ const UserInputForm = () => {
                 ) : (
                   <>
                     <FaRocket />
-                    Let's cook together!
+                    Create My Profile
                   </>
                 )}
               </Button>
             )}
-          </div>
+          </NavigationButtons>
         </form>
       </FormContainer>
     </SliderContainer>
