@@ -22,13 +22,11 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    console.log("Google Sign-In Success:", credentialResponse);
     try {
       // Send the ID token to your backend
       const idToken = credentialResponse.credential;
       const backendResponse = await signInWithGoogle(idToken);
       
-      console.log("Backend Response:", backendResponse);
       // Store the token and user info
       localStorage.setItem('authToken', backendResponse.access_token);
       localStorage.setItem('userId', backendResponse.user_id);
@@ -38,14 +36,11 @@ const AuthPage = () => {
       try {
         const hasProfile = await checkUserHasProfile();
         if (hasProfile) {
-          console.log("User has existing profile, navigating to dashboard");
           navigate('/dashboard');
         } else {
-          console.log("No profile found, navigating to form");
           navigate('/form');
         }
       } catch (profileError) {
-        console.log("Error checking profile, navigating to form:", profileError);
         navigate('/form');
       }
     } catch (error) {

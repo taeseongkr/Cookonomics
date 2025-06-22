@@ -5,13 +5,14 @@ import ReactCardFlip from 'react-card-flip';
 import { FaSpinner, FaCheck, FaTimes, FaPlus, FaUtensils } from 'react-icons/fa';
 import { useWorkflowWebSocket } from '../hooks/useWorkflowWebSocket';
 import { 
-  getUserWorkflows, 
   getWorkflowWithMealPlans, 
   createWorkflowForExistingProfile,
-  getUserProfiles
+  getUserProfiles,
+  getAllWorkflowsWithMealPlans
 } from '../utils/api';
 import ImageUploadModal from '../components/ImageUploadModal';
 import MealPlanDisplay from '../components/MealPlanDisplay';
+import DateSelectionModal from '../components/DateSelectionModal';
 
 const MealPlansContainer = styled.div`
   padding: 2rem;
@@ -387,33 +388,128 @@ const InstructionList = styled.ol`
   counter-reset: step-counter;
 `;
 
-const InstructionStep = styled.li`
-  background: white;
-  margin: 8px 0;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border-left: 3px solid #667eea;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  position: relative;
-  counter-increment: step-counter;
+const InstructionScrollContainer = styled.div`
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 8px;
+  flex: 1;
   
-  &:before {
-    content: counter(step-counter);
-    position: absolute;
-    left: -15px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #667eea;
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 700;
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
   }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #7DD3C0;
+    border-radius: 10px;
+    
+    &:hover {
+      background: #5AB5A1;
+    }
+  }
+  
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #7DD3C0 #f1f1f1;
+`;
+
+const IngredientsScrollContainer = styled.div`
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #7DD3C0;
+    border-radius: 10px;
+    
+    &:hover {
+      background: #5AB5A1;
+    }
+  }
+  
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #7DD3C0 #f1f1f1;
+`;
+
+const WorkflowSelector = styled.div`
+  background: white;
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e2e8f0;
+`;
+
+const WorkflowGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const WorkflowSelectCard = styled.div`
+  background: ${props => props.selected ? '#f0fff4' : '#f7fafc'};
+  border: 2px solid ${props => props.selected ? '#7DD3C0' : '#e2e8f0'};
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: #7DD3C0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(125, 211, 192, 0.2);
+  }
+`;
+
+const WorkflowSelectTitle = styled.h4`
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+`;
+
+const WorkflowSelectInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+`;
+
+const WorkflowSelectMeals = styled.div`
+  font-size: 0.85rem;
+  color: #7DD3C0;
+  font-weight: 600;
+`;
+
+const SectionTitle = styled.h3`
+  color: #2d3748;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const MealPlansPage = () => {
@@ -421,8 +517,10 @@ const MealPlansPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
+  const [allWorkflows, setAllWorkflows] = useState([]);
   const [creatingWorkflow, setCreatingWorkflow] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
   const [selectedMealPlan, setSelectedMealPlan] = useState(null);
   const [flippedCards, setFlippedCards] = useState({});
 
@@ -445,31 +543,73 @@ const MealPlansPage = () => {
     // Handle incoming workflow data from navigation
     if (workflowData) {
       setSelectedWorkflow(workflowData);
+      
+      // If the workflow is completed but has no meal plans, fetch them
+      if (workflowData.status === 'completed' && (!workflowData.meal_plans || workflowData.meal_plans.length === 0)) {
+        const fetchCompleteWorkflow = async () => {
+          try {
+            const completeWorkflowData = await getWorkflowWithMealPlans(workflowData.id);
+            setSelectedWorkflow(completeWorkflowData);
+          } catch (error) {
+            console.error('Error fetching complete workflow data:', error);
+          }
+        };
+        fetchCompleteWorkflow();
+      }
+      
       setLoading(false);
     } else if (newWorkflow && !selectedWorkflow) {
       // This is a new workflow being created
-      console.log('New workflow received:', newWorkflow);
     }
   }, [workflowData, newWorkflow, selectedWorkflow]);
 
   useEffect(() => {
     // Handle WebSocket meal plan data
     if (mealPlan) {
-      console.log('Received parsed meal plan data via WebSocket:', mealPlan);
+      // Meal plan data received via WebSocket
     }
   }, [mealPlan]);
 
+  useEffect(() => {
+    // When workflow status becomes COMPLETED, fetch the complete workflow data including meal plans
+    const handleWorkflowCompleted = async () => {
+      if (workflowStatus === 'completed' && newWorkflow?.id) {
+        try {
+          const completeWorkflowData = await getWorkflowWithMealPlans(newWorkflow.id);
+          setSelectedWorkflow(completeWorkflowData);
+        } catch (error) {
+          console.error('Error fetching completed workflow data:', error);
+        }
+      }
+    };
+
+    handleWorkflowCompleted();
+  }, [workflowStatus, newWorkflow?.id]);
+
   const initializePage = async () => {
     try {
-      // Load all user workflows
-      const userWorkflows = await getUserWorkflows();
-      console.log('Loaded user workflows:', userWorkflows);
+      // Get user profiles first to get the latest profile ID
+      const profiles = await getUserProfiles();
 
-      // If no specific workflow data was passed, show the most recent one
-      if (!workflowData && !newWorkflow && userWorkflows && userWorkflows.length > 0) {
-        const latestWorkflow = userWorkflows[userWorkflows.length - 1];
-        const workflowDetails = await getWorkflowWithMealPlans(latestWorkflow.id);
-        setSelectedWorkflow(workflowDetails);
+      if (!profiles || profiles.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Use the latest profile to get all workflows
+      const latestProfile = profiles[profiles.length - 1];
+
+      // If no specific workflow data was passed, load all workflows for the profile
+      if (!workflowData && !newWorkflow) {
+        const workflowsWithMealPlans = await getAllWorkflowsWithMealPlans(latestProfile.id);
+        
+        setAllWorkflows(workflowsWithMealPlans);
+        
+        // Set the most recent workflow as selected if available
+        if (workflowsWithMealPlans && workflowsWithMealPlans.length > 0) {
+          const latestWorkflow = workflowsWithMealPlans[workflowsWithMealPlans.length - 1];
+          setSelectedWorkflow(latestWorkflow);
+        }
       }
     } catch (error) {
       console.error('Error initializing meal plans page:', error);
@@ -480,26 +620,33 @@ const MealPlansPage = () => {
 
   const handleCreateNewWorkflow = async () => {
     try {
-      setCreatingWorkflow(true);
-      
-      // Get user profiles
+      // Get user profiles first to check if user has any
       const profiles = await getUserProfiles();
       if (!profiles || profiles.length === 0) {
         navigate('/form');
         return;
       }
 
-      const latestProfile = profiles[profiles.length - 1];
+      // Show the date selection modal
+      setShowDateModal(true);
+    } catch (error) {
+      console.error('Error checking user profiles:', error);
+      alert('Failed to load user profiles. Please try again.');
+    }
+  };
+
+  const handleDateModalSubmit = async (workflowData) => {
+    try {
+      setCreatingWorkflow(true);
       
-      const workflowData = {
-        budget: 100,
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      };
+      // Get user profiles
+      const profiles = await getUserProfiles();
+      const latestProfile = profiles[profiles.length - 1];
       
       const workflowResult = await createWorkflowForExistingProfile(latestProfile.id, workflowData);
       
-      console.log('Created new workflow:', workflowResult);
+      // Close the modal
+      setShowDateModal(false);
       
       // Navigate to show the new workflow execution
       navigate('/meal-plans', { 
@@ -527,6 +674,10 @@ const MealPlansPage = () => {
       ...prev,
       [mealId]: !prev[mealId]
     }));
+  };
+
+  const handleWorkflowSelect = (workflow) => {
+    setSelectedWorkflow(workflow);
   };
 
   const formatDate = (dateString) => {
@@ -573,11 +724,41 @@ const MealPlansPage = () => {
       {sessionId && (
         <WebSocketStatus connected={isConnected}>
           {isConnected ? <FaCheck /> : <FaTimes />}
-          {isConnected ? `Real-time updates active - Status: ${workflowStatus}` : 'Connecting to meal plan generator...'}
+          {isConnected ? `Real-time updates active - Status: ${workflowStatus || 'connected'}` : 'Connecting to meal plan generator...'}
           {mealPlan && <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-            ✅ Meal plan data received and parsed
+            ✅ Meal plan data received
           </div>}
         </WebSocketStatus>
+      )}
+
+      {/* Workflow Selector - Show only if we have multiple workflows */}
+      {allWorkflows.length > 1 && (
+        <WorkflowSelector>
+          <SectionTitle>
+            <FaUtensils />
+            Your Meal Plan History ({allWorkflows.length} plans)
+          </SectionTitle>
+          <WorkflowGrid>
+            {allWorkflows.map((workflow) => (
+              <WorkflowSelectCard
+                key={workflow.id}
+                selected={selectedWorkflow?.id === workflow.id}
+                onClick={() => handleWorkflowSelect(workflow)}
+              >
+                <WorkflowSelectTitle>
+                  Meal Plan {workflow.id}
+                </WorkflowSelectTitle>
+                <WorkflowSelectInfo>
+                  <span>${workflow.budget}</span>
+                  <span>{formatDate(workflow.start_date)} - {formatDate(workflow.end_date)}</span>
+                </WorkflowSelectInfo>
+                <WorkflowSelectMeals>
+                  {workflow.meal_plans?.length || 0} meal plans • {workflow.status}
+                </WorkflowSelectMeals>
+              </WorkflowSelectCard>
+            ))}
+          </WorkflowGrid>
+        </WorkflowSelector>
       )}
 
       {selectedWorkflow ? (
@@ -720,22 +901,24 @@ const MealPlansPage = () => {
                         </MealPlanTitle>
                         
                         {meal.instructions && (
-                          <div style={{ marginBottom: '20px' }}>
+                          <div style={{ marginBottom: '20px', flex: '1', display: 'flex', flexDirection: 'column' }}>
                             <h4 style={{ color: '#2d3748', marginBottom: '10px' }}>Instructions:</h4>
-                            <InstructionList>
-                              {meal.instructions.split(/\d+\.|\n/).filter(step => step.trim()).map((step, i) => (
-                                <InstructionStep key={i}>
-                                  {step.trim()}
-                                </InstructionStep>
-                              ))}
-                            </InstructionList>
+                            <InstructionScrollContainer>
+                              <InstructionList>
+                                {meal.instructions.split(/\d+\.|\n/).filter(step => step.trim()).map((step, i) => (
+                                  <InstructionStep key={i}>
+                                    {step.trim()}
+                                  </InstructionStep>
+                                ))}
+                              </InstructionList>
+                            </InstructionScrollContainer>
                           </div>
                         )}
 
                         {ingredients.length > 0 && (
                           <div style={{ marginBottom: '20px' }}>
                             <h4 style={{ color: '#2d3748', marginBottom: '10px' }}>All Ingredients:</h4>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            <IngredientsScrollContainer>
                               {ingredients.map((ingredient, i) => (
                                 <IngredientChip key={i} style={{ fontSize: '0.8rem' }}>
                                   {typeof ingredient === 'string' ? ingredient : 
@@ -744,7 +927,7 @@ const MealPlansPage = () => {
                                    String(ingredient)}
                                 </IngredientChip>
                               ))}
-                            </div>
+                            </IngredientsScrollContainer>
                           </div>
                         )}
 
@@ -804,15 +987,23 @@ const MealPlansPage = () => {
             </EmptyState>
           )}
         </WorkflowCard>
-      ) : (
+      ) : allWorkflows.length === 0 ? (
         <EmptyState>
           <FaUtensils style={{ fontSize: '3rem', color: '#cbd5e0', marginBottom: '1rem' }} />
           <h3>No Meal Plans Found</h3>
           <p>Create your first meal plan to get started with personalized recipes!</p>
-          <CreateButton onClick={handleCreateNewWorkflow}>
-            <FaPlus />
-            Create Your First Plan
-          </CreateButton>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+            <CreateButton onClick={handleCreateNewWorkflow}>
+              <FaPlus />
+              Create Your First Plan
+            </CreateButton>
+          </div>
+        </EmptyState>
+      ) : (
+        <EmptyState>
+          <FaUtensils style={{ fontSize: '3rem', color: '#cbd5e0', marginBottom: '1rem' }} />
+          <h3>Select a Meal Plan</h3>
+          <p>Choose a meal plan from your history above to view its details and recipes.</p>
         </EmptyState>
       )}
 
@@ -822,8 +1013,44 @@ const MealPlansPage = () => {
         mealPlanId={selectedMealPlan?.id}
         recipeName={selectedMealPlan?.name || selectedMealPlan?.recipe_name || 'Recipe'}
       />
+
+      <DateSelectionModal
+        isOpen={showDateModal}
+        onClose={() => setShowDateModal(false)}
+        onSubmit={handleDateModalSubmit}
+        isLoading={creatingWorkflow}
+      />
     </MealPlansContainer>
   );
 };
 
-export default MealPlansPage; 
+export default MealPlansPage;
+
+const InstructionStep = styled.li`
+  background: white;
+  margin: 8px 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border-left: 3px solid #667eea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  counter-increment: step-counter;
+  
+  &:before {
+    content: counter(step-counter);
+    position: absolute;
+    left: -15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #667eea;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+`;

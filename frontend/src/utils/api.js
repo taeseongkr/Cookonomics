@@ -1,12 +1,8 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem('authToken');
-  console.log('Getting auth headers, token present:', !!token);
-  if (token) {
-    console.log('Token preview:', token.substring(0, 20) + '...');
-  }
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -23,14 +19,6 @@ export const debugAuthState = () => {
   const token = localStorage.getItem('authToken');
   const userId = localStorage.getItem('userId');
   const userEmail = localStorage.getItem('userEmail');
-  
-  console.log('=== AUTHENTICATION DEBUG ===');
-  console.log('Token exists:', !!token);
-  console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'null');
-  console.log('User ID:', userId);
-  console.log('User Email:', userEmail);
-  console.log('isAuthenticated():', isAuthenticated());
-  console.log('============================');
   
   return {
     hasToken: !!token,
@@ -233,7 +221,6 @@ export const createProfileAndStartWorkflow = async (formData) => {
   try {
     // Step 1: Create the profile
     const profileResult = await createUserProfile(formData);
-    console.log('Profile created successfully:', profileResult);
     
     // Step 2: Create workflow with budget from form data
     const workflowData = {
@@ -241,13 +228,10 @@ export const createProfileAndStartWorkflow = async (formData) => {
       start_date: formData.start_date,
       end_date: formData.end_date
     };
-    console.log('Creating workflow with budget:', formData.budget, 'Full workflow data:', workflowData);
     const workflowResult = await createWorkflow(profileResult.id, workflowData);
-    console.log('Workflow created successfully:', workflowResult);
     
     // Step 3: Execute workflow
     const executionResult = await executeWorkflow(workflowResult.id, profileResult.id);
-    console.log('Workflow execution started:', executionResult);
     
     return {
       profile: profileResult,
@@ -402,34 +386,24 @@ export const createCustomWorkflow = async (profileId, options = {}) => {
 export const checkUserHasProfile = async () => {
   try {
     if (!isAuthenticated()) {
-      console.log('Not authenticated - no token found');
       return false;
     }
 
-    console.log('Making request to check user profiles...');
     const headers = getAuthHeaders();
-    console.log('Request headers:', headers);
 
     const response = await fetch(`${API_BASE_URL}/profiles/`, {
       method: 'GET',
       headers: headers,
     });
 
-    console.log('Profile check response status:', response.status);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log('Profile check error response:', errorText);
-      
       if (response.status === 401) {
-        console.log('401 error - handling auth error');
         handleAuthError(new Error('401'));
       }
       return false;
     }
 
     const profiles = await response.json();
-    console.log('Profiles response:', profiles);
     return profiles && profiles.length > 0;
   } catch (error) {
     console.error('Error checking user profiles:', error);
@@ -440,15 +414,11 @@ export const checkUserHasProfile = async () => {
 // Create and execute workflow for existing profile
 export const createWorkflowForExistingProfile = async (profileId, workflowData) => {
   try {
-    console.log('Creating workflow for existing profile:', profileId, 'with data:', workflowData);
-    
     // Step 1: Create workflow
     const workflowResult = await createWorkflow(profileId, workflowData);
-    console.log('Workflow created successfully:', workflowResult);
     
     // Step 2: Execute workflow
     const executionResult = await executeWorkflow(workflowResult.id, profileId);
-    console.log('Workflow execution started:', executionResult);
     
     return {
       profile_id: profileId,
@@ -526,6 +496,41 @@ export const getWorkflowWithMealPlans = async (workflowId) => {
   }
 };
 
+// Get all workflows with meal plans for a specific profile
+export const getAllWorkflowsWithMealPlans = async (profileId = null) => {
+  try {
+    if (!isAuthenticated()) {
+      throw new Error('You must be logged in to get workflows. Please sign in with Google first.');
+    }
+
+    // First get all workflows for the profile
+    const workflows = await getUserWorkflows(profileId);
+
+    if (!workflows || workflows.length === 0) {
+      return [];
+    }
+
+    // For each workflow, fetch the detailed data including meal plans
+    const workflowsWithMealPlans = await Promise.all(
+      workflows.map(async (workflow) => {
+        try {
+          const detailedWorkflow = await getWorkflowWithMealPlans(workflow.id);
+          return detailedWorkflow;
+        } catch (error) {
+          console.error(`Error fetching meal plans for workflow ${workflow.id}:`, error);
+          // Return the basic workflow if detailed fetch fails
+          return workflow;
+        }
+      })
+    );
+
+    return workflowsWithMealPlans;
+  } catch (error) {
+    console.error('getAllWorkflowsWithMealPlans: Error:', error);
+    return handleAuthError(error);
+  }
+};
+
 // Get user profiles
 export const getUserProfiles = async () => {
   try {
@@ -533,37 +538,22 @@ export const getUserProfiles = async () => {
       throw new Error('You must be logged in to get profiles. Please sign in with Google first.');
     }
 
-    console.log('getUserProfiles: Making request to get user profiles...');
     const headers = getAuthHeaders();
-    console.log('getUserProfiles: Request headers:', headers);
 
     const response = await fetch(`${API_BASE_URL}/profiles/`, {
       method: 'GET',
       headers: headers,
     });
 
-    console.log('getUserProfiles: Response status:', response.status);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.log('getUserProfiles: Error response:', errorText);
-      
-      let errorData = {};
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        console.log('Failed to parse error response as JSON');
-      }
-      
       if (response.status === 401) {
         throw new Error('Your session has expired. Please sign in again.');
       }
       
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const profiles = await response.json();
-    console.log('getUserProfiles: Success response:', profiles);
     return profiles;
   } catch (error) {
     console.error('getUserProfiles: Error:', error);
@@ -642,5 +632,57 @@ export const getLatestUserWorkflow = async () => {
   } catch (error) {
     console.error('Error getting latest user workflow:', error);
     return null;
+  }
+};
+
+// Delete user profile
+export const deleteUserProfile = async (profileId) => {
+  try {
+    if (!isAuthenticated()) {
+      throw new Error('You must be logged in to delete a profile. Please sign in with Google first.');
+    }
+
+    const headers = getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
+      method: 'DELETE',
+      headers: headers,
+    });
+
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      let errorData = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+      }
+      
+      if (response.status === 401) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+      
+      if (response.status === 403) {
+        throw new Error('You do not have permission to delete this profile.');
+      }
+      
+      if (response.status === 404) {
+        throw new Error('Profile not found.');
+      }
+      
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    // Check if response has content (204 No Content means successful deletion)
+    if (response.status === 204) {
+      return { success: true, message: 'Profile deleted successfully' };
+    }
+    
+    // If there's a response body, parse it
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('deleteUserProfile: Error:', error);
+    return handleAuthError(error);
   }
 };

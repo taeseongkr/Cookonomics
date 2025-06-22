@@ -196,7 +196,7 @@ const ResultModal = ({ isOpen, onClose, result }) => {
   const { comparison_result, similarity_score } = result;
 
   const renderStars = (score) => {
-    const stars = Math.round(score / 20); // Convert 0-100 to 0-5 stars
+    const stars = Math.round(score / 2); // Convert 0-100 to 0-5 stars
     return Array.from({ length: 5 }, (_, i) => (
       <FaStar
         key={i}
@@ -242,7 +242,7 @@ const ResultModal = ({ isOpen, onClose, result }) => {
           <StarContainer>
             {renderStars(similarity_score)}
           </StarContainer>
-          <ScoreNumber>{similarity_score}/100</ScoreNumber>
+          <ScoreNumber>{similarity_score}/10</ScoreNumber>
         </ScoreSection>
 
         {comparison_result.detected_items && (

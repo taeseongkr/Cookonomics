@@ -6,8 +6,6 @@ import Floating3DElements from './components/Floating3DElements';
 import NutritionSummaryCard from './components/NutritionSummaryCard';
 import AuthPage from './components/AuthPage';
 import RecipeShowcase from './pages/RecipeShowcase';
-import TestMealPlanPage from './pages/TestMealPlanPage';
-import NewFeaturesTest from './pages/NewFeaturesTest';
 import Dashboard from './pages/Dashboard';
 import MealPlansPage from './pages/MealPlansPage';
 import CalendarPage from './pages/CalendarPage';
@@ -99,7 +97,7 @@ function App() {
             </>
           } 
         />
-        <Route 
+        {/* <Route 
           path="/test-meal-plan" 
           element={
             <>
@@ -110,8 +108,8 @@ function App() {
               </CenteredContainer>
             </>
           } 
-        />
-        <Route 
+        /> */}
+        {/* <Route 
           path="/test-features" 
           element={
             <>
@@ -122,7 +120,7 @@ function App() {
               </CenteredContainer>
             </>
           } 
-        />
+        /> */}
 
         {/* Protected routes (with layout) */}
         <Route 

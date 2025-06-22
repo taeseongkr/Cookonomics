@@ -5,11 +5,11 @@ import { FaPlus, FaUtensils, FaHistory, FaUser, FaClock, FaSpinner } from 'react
 import { 
   isAuthenticated, 
   getUserProfiles, 
-  getUserWorkflows, 
   getWorkflowWithMealPlans,
   createWorkflowForExistingProfile,
-  debugAuthState
+  getAllWorkflowsWithMealPlans
 } from '../utils/api';
+import DateSelectionModal from '../components/DateSelectionModal';
 
 const DashboardContainer = styled.div`
   padding: 2rem;
@@ -228,6 +228,7 @@ const Dashboard = () => {
   const [recentWorkflows, setRecentWorkflows] = useState([]);
   const [userEmail, setUserEmail] = useState('');
   const [creatingWorkflow, setCreatingWorkflow] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
 
   useEffect(() => {
     initializeDashboard();
@@ -235,13 +236,7 @@ const Dashboard = () => {
 
   const initializeDashboard = async () => {
     try {
-      // Debug authentication state
-      console.log('=== DASHBOARD INITIALIZATION ===');
-      const authDebug = debugAuthState();
-      console.log('Auth state:', authDebug);
-      
       if (!isAuthenticated()) {
-        console.log('Not authenticated, redirecting to /auth');
         navigate('/auth');
         return;
       }
@@ -249,20 +244,16 @@ const Dashboard = () => {
       const email = localStorage.getItem('userEmail');
       setUserEmail(email || 'User');
 
-      console.log('Loading user profiles...');
       // Load user profiles
       const userProfiles = await getUserProfiles();
-      console.log('User profiles loaded:', userProfiles);
       setProfiles(userProfiles || []);
 
       // Load recent workflows if user has profiles
       if (userProfiles && userProfiles.length > 0) {
-        console.log('Loading user workflows...');
-        const workflows = await getUserWorkflows();
-        console.log('User workflows loaded:', workflows);
+        const latestProfile = userProfiles[userProfiles.length - 1];
+        const workflows = await getAllWorkflowsWithMealPlans(latestProfile.id);
         setRecentWorkflows(workflows || []);
       }
-      console.log('=== DASHBOARD INITIALIZATION COMPLETE ===');
     } catch (error) {
       console.error('Error initializing dashboard:', error);
     } finally {
@@ -278,19 +269,25 @@ const Dashboard = () => {
         return;
       }
 
+      // Show the date selection modal
+      setShowDateModal(true);
+    } catch (error) {
+      console.error('Error checking user profiles:', error);
+      alert('Failed to load user profiles. Please try again.');
+    }
+  };
+
+  const handleDateModalSubmit = async (workflowData) => {
+    try {
       setCreatingWorkflow(true);
       
       // Use the most recent profile
       const latestProfile = profiles[profiles.length - 1];
       
-      const workflowData = {
-        budget: 100, // Default budget in USD
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 7 days from now
-      };
-      
       const workflowResult = await createWorkflowForExistingProfile(latestProfile.id, workflowData);
-      console.log('Created new workflow:', workflowResult);
+      
+      // Close the modal
+      setShowDateModal(false);
       
       // Navigate to meal plans page to show the workflow execution
       navigate('/meal-plans', { 
@@ -434,6 +431,13 @@ const Dashboard = () => {
           </EmptyState>
         </RecentSection>
       )}
+
+      <DateSelectionModal
+        isOpen={showDateModal}
+        onClose={() => setShowDateModal(false)}
+        onSubmit={handleDateModalSubmit}
+        isLoading={creatingWorkflow}
+      />
     </DashboardContainer>
   );
 };

@@ -125,27 +125,22 @@ const RecipeShowcase = () => {
         
         if (hasProfile) {
           // User has profile - check for existing workflows
-          console.log('User has profile, checking for existing workflows');
           const userProfile = await getCurrentUserProfile();
           const workflows = await getUserWorkflows(userProfile.id);
           
           if (workflows && workflows.length > 0) {
             // User has existing workflows - show selector
-            console.log('User has existing workflows, showing selector');
             setAppState('workflow-selector');
           } else {
             // User has no workflows - create one automatically
-            console.log('User has no workflows, creating new one');
             await createNewWorkflowForUser(userProfile);
           }
         } else {
           // User has no profile - redirect to form
-          console.log('User has no profile, redirecting to form');
           window.location.href = '/form';
         }
       } else {
         // Case 3: Not authenticated - show fallback
-        console.log('User not authenticated, showing fallback');
         loadFallbackRecipes();
         setAppState('fallback');
       }
@@ -169,7 +164,6 @@ const RecipeShowcase = () => {
       };
       
       const workflowResult = await createWorkflowForExistingProfile(userProfile.id, workflowData);
-      console.log('Auto-created workflow for user:', workflowResult);
       
       if (workflowResult.execution && workflowResult.execution.websocket_session_id) {
         setSessionId(workflowResult.execution.websocket_session_id);
@@ -190,14 +184,12 @@ const RecipeShowcase = () => {
 
   // Handle workflow selection from WorkflowSelector
   const handleWorkflowSelected = (workflowWithMealPlans) => {
-    console.log('Workflow selected:', workflowWithMealPlans);
     setCurrentMealPlan(workflowWithMealPlans);
     setAppState('meal-plan');
   };
 
   // Handle new workflow creation from WorkflowSelector
   const handleCreateNewWorkflow = (workflowResult) => {
-    console.log('New workflow created:', workflowResult);
     
     if (workflowResult.execution && workflowResult.execution.websocket_session_id) {
       setSessionId(workflowResult.execution.websocket_session_id);
@@ -288,7 +280,6 @@ const RecipeShowcase = () => {
   };
 
   const handleRecipeSelected = (data) => {
-    console.log('Recipe selected:', data);
     setSelectedRecipeData(data);
     
     // You can add additional logic here, such as:

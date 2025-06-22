@@ -187,7 +187,6 @@ const HiddenInput = styled.input`
 `;
 
 const ImageUploadModal = ({ isOpen, onClose, mealPlanId, recipeName }) => {
-  console.log('ImageUploadModal props:', { isOpen, mealPlanId, recipeName });
   
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -229,11 +228,9 @@ const ImageUploadModal = ({ isOpen, onClose, mealPlanId, recipeName }) => {
   };
 
   const handleUpload = async () => {
-    console.log('handleUpload called', { selectedFile, mealPlanId });
     
     // Debug authentication state
     const authDebug = debugAuthState();
-    console.log('Authentication debug:', authDebug);
     
     if (!selectedFile) {
       console.error('No file selected');
@@ -255,10 +252,8 @@ const ImageUploadModal = ({ isOpen, onClose, mealPlanId, recipeName }) => {
 
     setIsUploading(true);
     try {
-      console.log('Uploading image for meal plan:', mealPlanId);
       const result = await uploadMealPlanImage(mealPlanId, selectedFile);
       
-      console.log('Upload successful:', result);
       setUploadResult(result);
       setShowResultModal(true);
     } catch (error) {

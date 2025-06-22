@@ -259,12 +259,9 @@ const CalendarPage = () => {
 
   const loadCalendarData = async () => {
     try {
-      console.log('Loading calendar data...');
-      
       // First get user profiles
       const profiles = await getUserProfiles();
       if (!profiles || profiles.length === 0) {
-        console.log('No profiles found');
         setLoading(false);
         return;
       }
@@ -287,7 +284,6 @@ const CalendarPage = () => {
         }
       }
 
-      console.log('All workflows loaded:', allWorkflows);
       setWorkflows(allWorkflows);
     } catch (error) {
       console.error('Error loading calendar data:', error);
@@ -379,7 +375,6 @@ const CalendarPage = () => {
 
   const handleMealClick = async (meal) => {
     try {
-      console.log('Loading meal plan details for workflow:', meal.workflow.id);
       const workflowWithMealPlans = await getWorkflowWithMealPlans(meal.workflow.id);
       setSelectedMealPlan(workflowWithMealPlans);
       setShowCalendarModal(true);
@@ -508,10 +503,12 @@ const CalendarPage = () => {
           <FaHistory style={{ fontSize: '3rem', color: '#cbd5e0', marginBottom: '1rem' }} />
           <h3>No Meal Plans Found</h3>
           <p>Create your first meal plan to start tracking your meals on the calendar!</p>
-          <CreateButton onClick={handleCreateNewMealPlan} style={{ marginTop: '1rem' }}>
-            <FaPlus />
-            Create Your First Meal Plan
-          </CreateButton>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+            <CreateButton onClick={handleCreateNewMealPlan}>
+              <FaPlus />
+              Create Your First Meal Plan
+            </CreateButton>
+          </div>
         </EmptyState>
       )}
 

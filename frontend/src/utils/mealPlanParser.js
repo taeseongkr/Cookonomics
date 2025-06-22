@@ -8,29 +8,24 @@
  * @returns {Object} Parsed meal plan data
  */
 export const parseMealPlan = (data) => {
-  console.log('Parsing meal plan data:', data);
   
   // If data is already structured (from backend), return as is
   if (typeof data === 'object' && data.meal_plans) {
-    console.log('Data already structured with meal_plans');
     return data;
   }
 
   // If data is an array of meal plans, wrap it
   if (Array.isArray(data)) {
-    console.log('Data is array, wrapping in meal_plans');
     return { meal_plans: data };
   }
 
   // If data is a single meal plan object, wrap it in an array
   if (typeof data === 'object' && data.name && data.cost && data.ingredients) {
-    console.log('Data is single meal plan object, wrapping in array');
     return { meal_plans: [data] };
   }
 
   // If data is a string (markdown format), parse it
   if (typeof data === 'string') {
-    console.log('Data is string, parsing as markdown');
     return parseMarkdownMealPlan(data);
   }
 
@@ -190,7 +185,6 @@ export const calculateTotalNutrition = (mealPlans) => {
  * Test function to verify the parser with sample data
  */
 export const testMealPlanParser = () => {
-  console.log('Testing meal plan parser...');
   
   // Test structured data format
   const structuredData = {
@@ -242,17 +236,11 @@ export const testMealPlanParser = () => {
   };
   
   try {
-    console.log('Testing structured data:');
     const result1 = parseMealPlan(structuredData);
-    console.log('✓ Structured data parsed successfully:', result1);
     
-    console.log('Testing array data:');
     const result2 = parseMealPlan(arrayData);
-    console.log('✓ Array data parsed successfully:', result2);
     
-    console.log('Testing single object data:');
     const result3 = parseMealPlan(singleObjectData);
-    console.log('✓ Single object data parsed successfully:', result3);
     
     return true;
   } catch (error) {

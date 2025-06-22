@@ -20,7 +20,11 @@ import {
   ProgressBar,
   ProgressFill
 } from '../styles/components/UserInputForm.styles';
-import { isAuthenticated, getCurrentUserProfile } from '../utils/api';
+import { 
+  isAuthenticated, 
+  getCurrentUserProfile,
+  deleteUserProfile 
+} from '../utils/api';
 import './UserInputForm.css'; // Add a CSS file for fade animations
 import { useNavigate } from 'react-router-dom';
 
@@ -41,6 +45,8 @@ const UserInputForm = () => {
   const [completed, setCompleted] = useState(false);
   const [showForm, setShowForm] = useState(true);
   const [fadeState, setFadeState] = useState('in'); // 'in' | 'out'
+  const [userProfile, setUserProfile] = useState(null);
+  const [deletingProfile, setDeletingProfile] = useState(false);
 
   // On mount, check if user already has a profile
   React.useEffect(() => {
@@ -48,7 +54,10 @@ const UserInputForm = () => {
       if (isAuthenticated()) {
         try {
           const profile = await getCurrentUserProfile();
-          if (profile) setCompleted(true);
+          if (profile) {
+            setUserProfile(profile);
+            setCompleted(true);
+          }
         } catch (e) {
           // No profile found or error, do nothing
         }
@@ -63,7 +72,8 @@ const UserInputForm = () => {
       setTimeout(() => {
         setShowForm(false);
         setCompleted(true);
-        navigate('/dashboard');
+        // Navigate to meal-plans without any workflow data - user can create workflow from there
+        navigate('/meal-plans');
       }, 600);
     }
   }, [submitStatus, navigate]);
@@ -74,6 +84,37 @@ const UserInputForm = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('userEmail');
     window.location.href = '/auth';
+  };
+
+  // Delete profile handler
+  const handleDeleteProfile = async () => {
+    if (!userProfile) {
+      alert('No profile found to delete.');
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete your profile? This action cannot be undone and will remove all your meal plans and data.'
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingProfile(true);
+      await deleteUserProfile(userProfile.id);
+      
+      // Reset state after successful deletion
+      setUserProfile(null);
+      setCompleted(false);
+      setShowForm(true);
+      
+      alert('Profile deleted successfully.');
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+      alert('Failed to delete profile. Please try again.');
+    } finally {
+      setDeletingProfile(false);
+    }
   };
 
   // If user is not authenticated, show sign-in required message
@@ -124,8 +165,8 @@ const UserInputForm = () => {
             <Button 
               type="button" 
               onClick={() => {
-                // Navigate directly to dashboard where workflow will be triggered
-                navigate('/dashboard');
+                // Navigate to meal-plans where user can create a workflow
+                navigate('/meal-plans');
               }}
               style={{ 
                 background: 'linear-gradient(135deg, #48bb78, #38a169)',
@@ -133,7 +174,7 @@ const UserInputForm = () => {
               }}
             >
               <FaRocket style={{ marginRight: '8px' }} />
-              Generate Meal Plan Now
+              Go to Meal Plans
             </Button>
             <br />
             <button 
@@ -153,6 +194,38 @@ const UserInputForm = () => {
               }}
             >
               Customize Budget & Dates
+            </button>
+            <br />
+            <button 
+              type="button"
+              onClick={handleDeleteProfile}
+              disabled={deletingProfile}
+              style={{
+                background: deletingProfile ? '#cbd5e0' : 'linear-gradient(135deg, #f56565, #e53e3e)',
+                border: 'none',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                cursor: deletingProfile ? 'not-allowed' : 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                margin: '0 auto'
+              }}
+            >
+              {deletingProfile ? (
+                <>
+                  <FaSpinner className="spinner" style={{ fontSize: '0.8rem' }} />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  🗑️ Delete Profile
+                </>
+              )}
             </button>
           </div>
         </FormContainer>
@@ -232,7 +305,7 @@ const UserInputForm = () => {
               <FormSection>
                 <InputGroup delay={0.3} className="full-width">
                   <InputWrapper>
-                    <InputLabel><FaDollarSign /> Weekly Budget ($)</InputLabel>
+                    <InputLabel><FaDollarSign /> Budget ($)</InputLabel>
                     <InputField
                       type="number"
                       placeholder="Enter your weekly food budget"

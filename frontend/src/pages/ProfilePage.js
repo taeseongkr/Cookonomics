@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaUser, FaEdit, FaPlus, FaTrash, FaSpinner } from 'react-icons/fa';
-import { getUserProfiles, updateUserProfile, createUserProfile } from '../utils/api';
+import { getUserProfiles, updateUserProfile, createUserProfile, deleteUserProfile } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 
 const ProfileContainer = styled.div`
@@ -198,9 +198,12 @@ const ProfilePage = () => {
 
     setActionLoading(profileId);
     try {
-      // Note: This would require implementing a delete endpoint
-      // For now, we'll just show an alert
-      alert('Profile deletion is not yet implemented. Please contact support.');
+      await deleteUserProfile(profileId);
+      
+      // Remove the deleted profile from the local state
+      setProfiles(profiles.filter(profile => profile.id !== profileId));
+      
+      alert('Profile deleted successfully!');
     } catch (error) {
       console.error('Error deleting profile:', error);
       alert('Failed to delete profile. Please try again.');

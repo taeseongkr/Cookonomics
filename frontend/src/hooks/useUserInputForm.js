@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { validateForm, formatFormData } from '../utils/formValidation';
-import { createProfileAndStartWorkflow } from '../utils/api';
+import { createUserProfile } from '../utils/api';
 import { SUBMIT_STATUS, ERROR_MESSAGES } from '../constants/formConstants';
 
 export const useUserInputForm = () => {
@@ -92,11 +92,10 @@ export const useUserInputForm = () => {
     
     try {
       const formattedData = formatFormData(formData);
-      const result = await createProfileAndStartWorkflow(formattedData);
-      console.log('Profile and workflow created successfully:', result);
+      const result = await createUserProfile(formattedData);
       
-      // Store workflow data for the recipes page
-      setWorkflowData(result);
+      // Store profile data (no workflow data)
+      setWorkflowData({ profile: result });
       
       setSubmitStatus(SUBMIT_STATUS.SUCCESS);
       

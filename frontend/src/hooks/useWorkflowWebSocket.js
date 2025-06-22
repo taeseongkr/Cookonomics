@@ -6,9 +6,9 @@ export const useWorkflowWebSocket = (sessionId) => {
   const [recipes, setRecipes] = useState([]);
   const [mealPlan, setMealPlan] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!sessionId); // Only loading if there's a sessionId
   const [error, setError] = useState(null);
-  const [workflowStatus, setWorkflowStatus] = useState('connecting');
+  const [workflowStatus, setWorkflowStatus] = useState(sessionId ? 'connecting' : null); // No status if no sessionId
   
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -16,20 +16,20 @@ export const useWorkflowWebSocket = (sessionId) => {
   const reconnectAttempts = useRef(0);
 
   useEffect(() => {
+    
     if (!sessionId) {
-      setError('No session ID provided');
+      setError(null); // Clear any error
       setIsLoading(false);
+      setWorkflowStatus(null); // No status when no sessionId
       return;
     }
 
     const connect = () => {
       try {
-        console.log('Connecting to WebSocket with session ID:', sessionId);
         const ws = createWorkflowWebSocketConnection(sessionId);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('WebSocket connected successfully');
           setIsConnected(true);
           setIsLoading(false);
           setError(null);
@@ -40,7 +40,6 @@ export const useWorkflowWebSocket = (sessionId) => {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
             
             switch (data.type) {
               case 'workflow_update':
@@ -52,7 +51,6 @@ export const useWorkflowWebSocket = (sessionId) => {
                     try {
                       const parsedMealPlan = parseMealPlan(data.data);
                       setMealPlan(parsedMealPlan);
-                      console.log('Parsed meal plan from workflow completion:', parsedMealPlan);
                     } catch (parseError) {
                       console.error('Error parsing meal plan from workflow completion:', parseError);
                       // Fallback: store raw meal plan data
@@ -76,7 +74,6 @@ export const useWorkflowWebSocket = (sessionId) => {
                   try {
                     const parsedMealPlan = parseMealPlan(data.meal_plan);
                     setMealPlan(parsedMealPlan);
-                    console.log('Parsed meal plan:', parsedMealPlan);
                   } catch (parseError) {
                     console.error('Error parsing meal plan:', parseError);
                     // Fallback: store raw meal plan data
@@ -96,16 +93,13 @@ export const useWorkflowWebSocket = (sessionId) => {
                 setIsLoading(false);
                 break;
               case 'connection_established':
-                console.log('WebSocket connection established:', data.message);
                 break;
               default:
-                console.log('Unknown message type:', data.type);
                 // Check if the message contains meal plan data in plain text
                 if (typeof event.data === 'string' && event.data.includes('## Meal Plan')) {
                   try {
                     const parsedMealPlan = parseMealPlan(event.data);
                     setMealPlan(parsedMealPlan);
-                    console.log('Parsed meal plan from raw message:', parsedMealPlan);
                     setWorkflowStatus('completed');
                     setIsLoading(false);
                   } catch (parseError) {
@@ -120,7 +114,6 @@ export const useWorkflowWebSocket = (sessionId) => {
               try {
                 const parsedMealPlan = parseMealPlan(event.data);
                 setMealPlan(parsedMealPlan);
-                console.log('Parsed meal plan from non-JSON message:', parsedMealPlan);
                 setWorkflowStatus('completed');
                 setIsLoading(false);
               } catch (parseError) {
@@ -137,13 +130,11 @@ export const useWorkflowWebSocket = (sessionId) => {
         };
 
         ws.onclose = (event) => {
-          console.log('WebSocket closed:', event.code, event.reason);
           setIsConnected(false);
           
           // Attempt to reconnect if not a normal closure
           if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
             reconnectAttempts.current += 1;
-            console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})`);
             
             reconnectTimeoutRef.current = setTimeout(() => {
               connect();
