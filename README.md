@@ -1,4 +1,5 @@
-# Multi-Agent System
+# Cookonomics
+## Agent Development Kit Hackathon with Google Cloud
 
 A comprehensive multi-agent system with backend orchestration and frontend monitoring interface.
 
