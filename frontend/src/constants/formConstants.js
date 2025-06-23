@@ -46,14 +46,10 @@ export const SUBMIT_STATUS = {
 };
 
 export const ERROR_MESSAGES = {
-  REQUIRED_FIELDS: 'Please fill in all required fields (age, gender, height, weight, budget, start date, end date)',
+  REQUIRED_FIELDS: 'Please fill in all required fields (age, gender, height, weight)',
   INVALID_AGE: 'Please enter a valid age between 1 and 120',
   INVALID_HEIGHT: 'Please enter a valid height between 100-250 cm',
   INVALID_WEIGHT: 'Please enter a valid weight between 30-300 kg',
-  INVALID_BUDGET: 'Please enter a valid budget (must be at least $1)',
-  INVALID_START_DATE: 'Please select a valid start date',
-  INVALID_END_DATE: 'Please select a valid end date',
-  INVALID_DATE_RANGE: 'End date must be after start date',
   SUBMIT_ERROR: 'Failed to create profile. Please try again.'
 };
 

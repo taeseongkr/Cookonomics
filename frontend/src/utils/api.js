@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = "https://cookonomics-backend-g3hype2pca-uc.a.run.app/api/v1";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -93,7 +93,7 @@ export const signInWithGoogle = async (idToken) => {
 
 // Add more API functions as needed
 export const getUserProfile = async (userId) => {
-  const response = await fetch(`${API_BASE_URL}/profiles/${userId}`, {
+  const response = await fetch(`${API_BASE_URL}/profiles/${userId}/`, {
     headers: getAuthHeaders(),
   });
   
@@ -154,7 +154,7 @@ export const createWorkflow = async (profileId, workflowData = {}) => {
       ...workflowData // Allow overriding defaults
     };
 
-    const response = await fetch(`${API_BASE_URL}/workflows`, {
+    const response = await fetch(`${API_BASE_URL}/workflows/`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(defaultWorkflowData)
@@ -212,21 +212,22 @@ export const createWorkflowWebSocketConnection = (sessionId) => {
     throw new Error('No authentication token found');
   }
   
-  const wsUrl = `ws://localhost:8000/api/v1/ws/workflow/${sessionId}?token=${token}`;
+  const wsUrl = `wss://cookonomics-backend-g3hype2pca-uc.a.run.app/api/v1/ws/workflow/${sessionId}?token=${token}`;
   return new WebSocket(wsUrl);
 };
 
 // Combined function to create profile and start workflow
 export const createProfileAndStartWorkflow = async (formData) => {
   try {
-    // Step 1: Create the profile
-    const profileResult = await createUserProfile(formData);
+    // Step 1: Create the profile (excluding workflow-specific fields)
+    const { budget, start_date, end_date, ...profileData } = formData;
+    const profileResult = await createUserProfile(profileData);
     
-    // Step 2: Create workflow with budget from form data
+    // Step 2: Create workflow with workflow-specific data
     const workflowData = {
-      budget: formData.budget, // Now correctly gets budget from Weekly Budget (₩) field
-      start_date: formData.start_date,
-      end_date: formData.end_date
+      budget: budget, // Budget comes from form data but is not part of profile
+      start_date: start_date,
+      end_date: end_date
     };
     const workflowResult = await createWorkflow(profileResult.id, workflowData);
     
@@ -443,7 +444,7 @@ export const getUserWorkflows = async (profileId = null) => {
       params.append('profile_id', profileId);
     }
 
-    const response = await fetch(`${API_BASE_URL}/workflows?${params}`, {
+    const response = await fetch(`${API_BASE_URL}/workflows/?${params}`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -683,6 +684,58 @@ export const deleteUserProfile = async (profileId) => {
     return result;
   } catch (error) {
     console.error('deleteUserProfile: Error:', error);
+    return handleAuthError(error);
+  }
+};
+
+// Delete workflow
+export const deleteWorkflow = async (workflowId) => {
+  try {
+    if (!isAuthenticated()) {
+      throw new Error('You must be logged in to delete a workflow. Please sign in with Google first.');
+    }
+
+    const headers = getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/workflows/${workflowId}`, {
+      method: 'DELETE',
+      headers: headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      let errorData = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        // Error text couldn't be parsed as JSON
+      }
+      
+      if (response.status === 401) {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+      
+      if (response.status === 403) {
+        throw new Error('You do not have permission to delete this workflow.');
+      }
+      
+      if (response.status === 404) {
+        throw new Error('Workflow not found.');
+      }
+      
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    // Check if response has content (204 No Content means successful deletion)
+    if (response.status === 204) {
+      return { success: true, message: 'Workflow deleted successfully' };
+    }
+    
+    // If there's a response body, parse it
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('deleteWorkflow: Error:', error);
     return handleAuthError(error);
   }
 };

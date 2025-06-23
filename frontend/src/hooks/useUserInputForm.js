@@ -14,9 +14,6 @@ export const useUserInputForm = () => {
     gender: '',
     height: '',
     weight: '',
-    budget: '',
-    start_date: today.toISOString().split('T')[0], // Default to today
-    end_date: nextWeek.toISOString().split('T')[0], // Default to next week
     preferences: '',
     cooking_level: '',
     religion: '',

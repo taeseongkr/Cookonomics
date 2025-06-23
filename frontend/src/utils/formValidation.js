@@ -1,10 +1,10 @@
 import { FORM_VALIDATION, ERROR_MESSAGES } from '../constants/formConstants';
 
 export const validateForm = (formData) => {
-  const { age, gender, height, weight, budget, start_date, end_date } = formData;
+  const { age, gender, height, weight } = formData;
   
   // Check for required fields
-  if (!age || !gender || !height || !weight || !budget || !start_date || !end_date) {
+  if (!age || !gender || !height || !weight ) {
     return {
       isValid: false,
       error: ERROR_MESSAGES.REQUIRED_FIELDS
@@ -36,49 +36,10 @@ export const validateForm = (formData) => {
   }
   
   // Validate budget
-  if (budget < FORM_VALIDATION.BUDGET.MIN || budget > FORM_VALIDATION.BUDGET.MAX) {
-    return {
-      isValid: false,
-      error: ERROR_MESSAGES.INVALID_BUDGET
-    };
-  }
+
   
   // Validate dates
-  const startDate = new Date(start_date);
-  const endDate = new Date(end_date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset time to start of day
   
-  // Check if dates are valid
-  if (isNaN(startDate.getTime())) {
-    return {
-      isValid: false,
-      error: ERROR_MESSAGES.INVALID_START_DATE
-    };
-  }
-  
-  if (isNaN(endDate.getTime())) {
-    return {
-      isValid: false,
-      error: ERROR_MESSAGES.INVALID_END_DATE
-    };
-  }
-  
-  // Check if start date is not in the past
-  if (startDate < today) {
-    return {
-      isValid: false,
-      error: 'Start date cannot be in the past'
-    };
-  }
-  
-  // Check if end date is after start date
-  if (endDate <= startDate) {
-    return {
-      isValid: false,
-      error: ERROR_MESSAGES.INVALID_DATE_RANGE
-    };
-  }
   
   return {
     isValid: true,

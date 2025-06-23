@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import ReactCardFlip from 'react-card-flip';
-import { FaSpinner, FaCheck, FaTimes, FaPlus, FaUtensils } from 'react-icons/fa';
+import { FaSpinner, FaCheck, FaTimes, FaPlus, FaUtensils, FaTrash } from 'react-icons/fa';
 import { useWorkflowWebSocket } from '../hooks/useWorkflowWebSocket';
 import { 
   getWorkflowWithMealPlans, 
   createWorkflowForExistingProfile,
   getUserProfiles,
-  getAllWorkflowsWithMealPlans
+  getAllWorkflowsWithMealPlans,
+  deleteWorkflow
 } from '../utils/api';
 import ImageUploadModal from '../components/ImageUploadModal';
 import MealPlanDisplay from '../components/MealPlanDisplay';
@@ -193,7 +194,7 @@ const MealPlanCard = styled.div`
 
 const MealImageContainer = styled.div`
   position: relative;
-  height: 240px;
+  height: 30%;
   background: linear-gradient(135deg, #7DD3C0 0%, #5AB5A1 100%);
   overflow: hidden;
 `;
@@ -271,6 +272,40 @@ const MealContent = styled.div`
   flex-direction: column;
 `;
 
+// Front face specific scrollable content
+const MealContentScrollable = styled.div`
+  padding: 24px;
+  background: white;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 70%;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #7DD3C0;
+    border-radius: 10px;
+    
+    &:hover {
+      background: #5AB5A1;
+    }
+  }
+  
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #7DD3C0 #f1f1f1;
+`;
+
 const MealPlanTitle = styled.h3`
   color: #2d3748;
   font-size: 1.5rem;
@@ -337,6 +372,60 @@ const ActionButton = styled.button`
   &.rating {
     background: linear-gradient(135deg, #667eea, #764ba2);
   }
+`;
+
+// Nutrition display components
+const NutritionContainer = styled.div`
+  background: #f7fafc;
+  border-radius: 15px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+`;
+
+const NutritionTitle = styled.h4`
+  color: #2d3748;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const NutritionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+`;
+
+const NutritionItem = styled.div`
+  background: white;
+  padding: 12px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #7DD3C0;
+    transform: translateY(-1px);
+  }
+`;
+
+const NutritionValue = styled.div`
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 4px;
+`;
+
+const NutritionLabel = styled.div`
+  font-size: 0.8rem;
+  color: #718096;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const LoadingContainer = styled.div`
@@ -473,11 +562,41 @@ const WorkflowSelectCard = styled.div`
   padding: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
   
   &:hover {
     border-color: #7DD3C0;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(125, 211, 192, 0.2);
+  }
+`;
+
+const DeleteButton = styled.button`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #e53e3e;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: #c53030;
+    transform: scale(1.1);
+  }
+  
+  ${WorkflowSelectCard}:hover & {
+    opacity: 1;
   }
 `;
 
@@ -680,6 +799,40 @@ const MealPlansPage = () => {
     setSelectedWorkflow(workflow);
   };
 
+  const handleDeleteWorkflow = async (workflowId, event) => {
+    // Prevent card selection when clicking delete
+    event.stopPropagation();
+    
+    const workflow = allWorkflows.find(w => w.id === workflowId);
+    const confirmMessage = `Are you sure you want to delete this meal plan?\n\nWorkflow ${workflowId}: $${workflow?.budget} budget\nThis action cannot be undone.`;
+    
+    const confirmed = window.confirm(confirmMessage);
+    
+    if (!confirmed) return;
+
+    try {
+      await deleteWorkflow(workflowId);
+      
+      // Remove the workflow from the local state
+      const updatedWorkflows = allWorkflows.filter(w => w.id !== workflowId);
+      setAllWorkflows(updatedWorkflows);
+      
+      // If the deleted workflow was selected, select another one or clear selection
+      if (selectedWorkflow?.id === workflowId) {
+        if (updatedWorkflows.length > 0) {
+          setSelectedWorkflow(updatedWorkflows[updatedWorkflows.length - 1]);
+        } else {
+          setSelectedWorkflow(null);
+        }
+      }
+      
+      alert('Meal plan deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+      alert(error.message || 'Failed to delete meal plan. Please try again.');
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -731,8 +884,8 @@ const MealPlansPage = () => {
         </WebSocketStatus>
       )}
 
-      {/* Workflow Selector - Show only if we have multiple workflows */}
-      {allWorkflows.length > 1 && (
+      {/* Workflow Selector - Show when there are workflows */}
+      {allWorkflows.length > 0 && (
         <WorkflowSelector>
           <SectionTitle>
             <FaUtensils />
@@ -755,6 +908,13 @@ const MealPlansPage = () => {
                 <WorkflowSelectMeals>
                   {workflow.meal_plans?.length || 0} meal plans • {workflow.status}
                 </WorkflowSelectMeals>
+
+                <DeleteButton 
+                  onClick={(e) => handleDeleteWorkflow(workflow.id, e)}
+                  title="Delete this meal plan"
+                >
+                  <FaTrash />
+                </DeleteButton>
               </WorkflowSelectCard>
             ))}
           </WorkflowGrid>
@@ -856,7 +1016,7 @@ const MealPlansPage = () => {
                         )}
                       </MealImageContainer>
 
-                      <MealContent>
+                      <MealContentScrollable>
                         <MealPlanTitle>{mealName}</MealPlanTitle>
                         
                         {mealDescription && (
@@ -880,6 +1040,35 @@ const MealPlansPage = () => {
                             )}
                           </IngredientPreview>
                         )}
+
+                        {/* Nutrition Information */}
+                        {meal.nutritions && (
+                          <NutritionContainer>
+                            <NutritionTitle>
+                              🥗 Nutrition Facts
+                            </NutritionTitle>
+                            <NutritionGrid>
+                              {meal.nutritions.protein && (
+                                <NutritionItem>
+                                  <NutritionValue>{meal.nutritions.protein.toFixed(1)}g</NutritionValue>
+                                  <NutritionLabel>Protein</NutritionLabel>
+                                </NutritionItem>
+                              )}
+                              {meal.nutritions.fat && (
+                                <NutritionItem>
+                                  <NutritionValue>{meal.nutritions.fat.toFixed(1)}g</NutritionValue>
+                                  <NutritionLabel>Fat</NutritionLabel>
+                                </NutritionItem>
+                              )}
+                              {meal.nutritions.carbohydrates && (
+                                <NutritionItem>
+                                  <NutritionValue>{meal.nutritions.carbohydrates.toFixed(1)}g</NutritionValue>
+                                  <NutritionLabel>Carbs</NutritionLabel>
+                                </NutritionItem>
+                              )}
+                            </NutritionGrid>
+                          </NutritionContainer>
+                        )}
                         
                         <ActionButton 
                           className="rating"
@@ -890,7 +1079,7 @@ const MealPlansPage = () => {
                         >
                           👨‍🍳 Rate My Cooking Skills!
                         </ActionButton>
-                      </MealContent>
+                      </MealContentScrollable>
                     </MealPlanCard>
 
                     {/* Back of Card */}
@@ -934,28 +1123,34 @@ const MealPlansPage = () => {
                         {meal.nutrition && (
                           <div style={{ marginBottom: '20px' }}>
                             <h4 style={{ color: '#2d3748', marginBottom: '10px' }}>Nutrition:</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                              {meal.nutrition.calories && (
-                                <div style={{ background: '#f7fafc', padding: '8px', borderRadius: '8px', fontSize: '0.9rem' }}>
-                                  <strong>Calories:</strong> {meal.nutrition.calories}
-                                </div>
-                              )}
-                              {meal.nutrition.protein && (
-                                <div style={{ background: '#f7fafc', padding: '8px', borderRadius: '8px', fontSize: '0.9rem' }}>
-                                  <strong>Protein:</strong> {meal.nutrition.protein}g
-                                </div>
-                              )}
-                              {meal.nutrition.carbs && (
-                                <div style={{ background: '#f7fafc', padding: '8px', borderRadius: '8px', fontSize: '0.9rem' }}>
-                                  <strong>Carbs:</strong> {meal.nutrition.carbs}g
-                                </div>
-                              )}
-                              {meal.nutrition.fat && (
-                                <div style={{ background: '#f7fafc', padding: '8px', borderRadius: '8px', fontSize: '0.9rem' }}>
-                                  <strong>Fat:</strong> {meal.nutrition.fat}g
-                                </div>
-                              )}
-                            </div>
+                            <NutritionContainer>
+                              <NutritionGrid>
+                                {meal.nutrition.calories && (
+                                  <NutritionItem>
+                                    <NutritionValue>{meal.nutrition.calories}</NutritionValue>
+                                    <NutritionLabel>Calories</NutritionLabel>
+                                  </NutritionItem>
+                                )}
+                                {meal.nutrition.protein && (
+                                  <NutritionItem>
+                                    <NutritionValue>{meal.nutrition.protein}g</NutritionValue>
+                                    <NutritionLabel>Protein</NutritionLabel>
+                                  </NutritionItem>
+                                )}
+                                {meal.nutrition.carbs && (
+                                  <NutritionItem>
+                                    <NutritionValue>{meal.nutrition.carbs}g</NutritionValue>
+                                    <NutritionLabel>Carbs</NutritionLabel>
+                                  </NutritionItem>
+                                )}
+                                {meal.nutrition.fat && (
+                                  <NutritionItem>
+                                    <NutritionValue>{meal.nutrition.fat}g</NutritionValue>
+                                    <NutritionLabel>Fat</NutritionLabel>
+                                  </NutritionItem>
+                                )}
+                              </NutritionGrid>
+                            </NutritionContainer>
                           </div>
                         )}
 

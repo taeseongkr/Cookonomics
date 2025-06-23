@@ -303,7 +303,7 @@ const UserInputForm = () => {
                 </InputGroup>
               </FormSection>
               <FormSection>
-                <InputGroup delay={0.3} className="full-width">
+                {/* <InputGroup delay={0.3} className="full-width">
                   <InputWrapper>
                     <InputLabel><FaDollarSign /> Budget ($)</InputLabel>
                     <InputField
@@ -338,8 +338,8 @@ const UserInputForm = () => {
                       min={formData.start_date || new Date().toISOString().split('T')[0]} // Start date as minimum
                     />
                     <FloatingFoodIcon><FaCalendarAlt /></FloatingFoodIcon>
-                  </InputWrapper>
-                </InputGroup>
+                  </InputWrapper> 
+                </InputGroup> */ }
                 <InputGroup delay={0.45} className="full-width">
                   <InputWrapper>
                     <InputLabel><FaBreadSlice /> Food Preferences</InputLabel>
