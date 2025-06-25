@@ -190,7 +190,7 @@ See [frontend/README.md](./frontend/README.md) for detailed frontend setup and d
 
 ### Backend Development
 
-See [backend/README.md](./backend/README.md) for detailed backend setup and API documentation.
+See [backend/README.md](https://github.com/nguyenhuy1209/Cookonomics-backend/blob/main/README.md) for detailed backend setup and API documentation.
 
 ## Contributing
 
